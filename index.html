@@ -947,7 +947,7 @@ body.qs-has-install #qsSnack { bottom: calc(136px + var(--safe-bottom)); }
   <div class="nav-item active" onclick="navTo('home', this)"><span class="nav-icon">🏠</span>হোম<span class="nav-dot"></span></div>
   <div class="nav-item" onclick="navTo('category', this)"><span class="nav-icon">📑</span>ক্যাটালগ<span class="nav-dot"></span></div>
   <div class="nav-item" onclick="navTo('cart', this)"><span class="nav-icon">🛒</span>ব্যাগ<span class="nav-dot"></span></div>
-  <div class="nav-item" onclick="navTo('wishlist', this)"><span class="nav-icon">❤️</span>পছন্দ<span class="nav-dot"></span></div>
+  <div class="nav-item" id="navWishlist" onclick="navTo('wishlist', this)"><span class="nav-icon">❤️</span>পছন্দ<span class="nav-dot"></span></div>
   <div class="nav-item" onclick="navTo('profile', this)"><span class="nav-icon">👤</span>প্রোফাইল<span class="nav-dot"></span></div>
 </div>
 
@@ -1016,6 +1016,7 @@ body.qs-has-install #qsSnack { bottom: calc(136px + var(--safe-bottom)); }
       <span>পরিশোধযোগ্য মোট:</span><span style="color:var(--gold);" id="chkTotalPayable">৳০</span>
     </div>
     <button class="btn-main" onclick="placeOrder()" id="placeBtn">অর্ডার নিশ্চিত করুন</button>
+    <button class="btn-outline" id="waCheckoutBtn" style="width:100%;margin-top:10px;display:none;" onclick="checkoutViaWhatsApp()">🟢 WhatsApp-এ অর্ডার পাঠান</button>
   </div>
 </div>
 
@@ -1161,6 +1162,7 @@ if (localStorage.getItem('mm_bazaar_theme') === 'dark') {
 }
 
 window.navTo = (id, el) => {
+  if(id === 'wishlist' && appToggles.f_s_wishlist === false) { showToast('পছন্দের তালিকা বন্ধ আছে', true); return; }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById(`page-${id}`).classList.add('active');
@@ -1175,6 +1177,7 @@ window.navTo = (id, el) => {
 // ==========================================
 window.addEventListener('DOMContentLoaded', () => {
   loadLocalCartAndWishlist();
+  applyFeatureVisibility(); /* honour cached/default wishlist toggle before Firebase answers */
   initFirebaseSync();
   startFlashTimer();
   
@@ -1199,6 +1202,12 @@ function initFirebaseSync() {
       appToggles = {...appToggles, ...snap.data()}; 
       renderProducts(allProducts, 'mainGrid'); 
       renderProducts(allProducts, 'catGrid'); 
+      renderBannersUI(allBanners);
+      const now = new Date().toISOString();
+      const flashList = allProducts.filter(p => p.isFlashSale === true && (!p.flashEndsAt || p.flashEndsAt > now));
+      document.getElementById('flashSection').style.display = (flashList.length > 0 && appToggles.f_s_flash_sale) ? 'block' : 'none';
+      if(flashList.length > 0) renderProducts(flashList, 'flashGrid');
+      renderHeaderAndStoreConfig(); /* marquee + maintenance + wishlist visibility follow the toggles */
     }
   });
 
@@ -1301,6 +1310,19 @@ function renderHeaderAndStoreConfig() {
   }
   document.getElementById('topWaBtn').href = `https://wa.me/88${(appSettings.whatsapp||'').replace(/[^0-9]/g,'')}`;
   document.getElementById('helpPhoneText').innerText = appSettings.phone || 'কল';
+  applyFeatureVisibility();
+}
+
+/* Admin feature toggles that hide/show whole app sections */
+function applyFeatureVisibility() {
+  const wishOn = appToggles.f_s_wishlist !== false;
+  const navW = document.getElementById('navWishlist');
+  if(navW) navW.style.display = wishOn ? '' : 'none';
+  document.querySelectorAll('.wish-btn').forEach(b => { b.style.display = wishOn ? '' : 'none'; });
+  const activePage = document.querySelector('.page.active');
+  if(!wishOn && activePage && activePage.id === 'page-wishlist') {
+    window.navTo('home', document.querySelectorAll('.nav-item')[0]);
+  }
 }
 
 function renderBannersUI(banners) {
@@ -1358,7 +1380,7 @@ function renderProducts(items, targetId) {
           <img src="${esc(p.imageUrl || 'https://via.placeholder.com/300')}" loading="lazy">
           ${p.isFlashSale ? `<span class="badge-flash">⚡ ফ্ল্যাশ</span>` : ''}
           ${hasOld ? `<span class="badge-discount">-${Math.round(((p.oldPrice-p.price)/p.oldPrice)*100)}%</span>` : ''}
-          <button class="wish-btn ${isWish?'active':''}" onclick="event.stopPropagation();toggleWishlist('${esc(p.id)}')">${isWish?'❤️':'🤍'}</button>
+          ${appToggles.f_s_wishlist !== false ? `<button class="wish-btn ${isWish?'active':''}" onclick="event.stopPropagation();toggleWishlist('${esc(p.id)}')">${isWish?'❤️':'🤍'}</button>` : ''}
           ${isOutOfStock ? `<div class="badge-out-of-stock">স্টক শেষ</div>` : ''}
         </div>
         <div class="product-details">
@@ -1758,7 +1780,8 @@ window.applyCoupon = async () => {
 // 10. CHECKOUT & PLACE ORDER
 // ==========================================
 window.openCheckout = () => {
-  if(!appSettings.f_s_guest_checkout && !currentUser) return openAuthModal();
+  const guestAllowed = appToggles.f_s_guest_checkout !== false && appSettings.f_s_guest_checkout !== false;
+  if(!guestAllowed && !currentUser) return openAuthModal();
   
   if(currentUser) {
     document.getElementById('chkName').value = userData.name || '';
@@ -1784,6 +1807,12 @@ window.openCheckout = () => {
   const sub = cart.reduce((s, i) => s + (i.price * i.qty), 0);
   const del = currentDeliveryZone === 'in' ? safeNumber(appSettings.del_in, 60) : safeNumber(appSettings.del_out, 120);
   document.getElementById('chkTotalPayable').innerText = `৳${fmt(sub + del)}`; 
+
+  const waBtn = document.getElementById('waCheckoutBtn');
+  if(waBtn) {
+    const waOn = appToggles.f_s_wa_checkout !== false && String(appSettings.whatsapp || appSettings.phone || '').replace(/[^0-9]/g,'').length >= 10;
+    waBtn.style.display = waOn ? 'block' : 'none';
+  }
   
   document.getElementById('checkoutModal').style.display = 'block';
   setTimeout(() => document.getElementById('checkoutModal').classList.add('active'), 10);
@@ -1824,6 +1853,7 @@ window.placeOrder = async () => {
   if(selectedPayMethod !== 'cod' && !trx) return showToast('TrxID প্রদান করুন', true);
 
   placingOrder = true;
+  let newOrderId = null;
   const btn = document.getElementById('placeBtn');
   btn.innerText = 'অর্ডার প্রসেসিং হচ্ছে...'; 
   btn.disabled = true;
@@ -1865,6 +1895,7 @@ window.placeOrder = async () => {
       
       // 4. Create Order
       const newOrderRef = doc(collection(db, 'orders'));
+      newOrderId = newOrderRef.id;
       tr.set(newOrderRef, {
         userId: currentUser ? currentUser.uid : 'guest',
         customerName: name,
@@ -1898,9 +1929,11 @@ window.placeOrder = async () => {
     appliedCoupon = null; 
     saveLocalCart(); 
     renderCart();
+    if(!currentUser && newOrderId) rememberGuestOrder(newOrderId);
     closeModal('checkoutModal'); 
     showToast('🎉 আপনার অর্ডার সফলভাবে গ্রহণ করা হয়েছে!');
-    navTo('profile', document.querySelectorAll('.nav-item')[4]);
+    if(currentUser) navTo('profile', document.querySelectorAll('.nav-item')[4]);
+    else showOrders(); /* guests have no profile page — show their order straight away */
     
   } catch(e) {
     showToast('অর্ডারে ত্রুটি: ' + e.message, true);
@@ -1909,6 +1942,65 @@ window.placeOrder = async () => {
     btn.innerText = 'অর্ডার নিশ্চিত করুন'; 
     btn.disabled = false;
   }
+};
+
+/* WhatsApp direct checkout: builds the full order summary and hands it to WhatsApp */
+window.checkoutViaWhatsApp = () => {
+  if(!cart.length) return showToast('আপনার কার্ট খালি', true);
+
+  const name = document.getElementById('chkName').value.trim();
+  const phone = document.getElementById('chkPhone').value.trim();
+  const addr = document.getElementById('chkAddress').value.trim();
+  const notes = document.getElementById('chkNotes').value.trim();
+
+  if(!name) return showToast('পূর্ণ নাম দিন', true);
+  if(!isValidBdPhone(phone)) return showToast('সঠিক ১১ ডিজিটের নম্বর দিন', true);
+  if(!addr) return showToast('ডেলিভারি ঠিকানা দিন', true);
+
+  const waNumber = String(appSettings.whatsapp || appSettings.phone || '').replace(/[^0-9]/g,'');
+  if(!waNumber) return showToast('হোয়াটসঅ্যাপ নম্বর সেট করা নেই', true);
+
+  const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+  let disc = 0;
+  if (appliedCoupon) {
+    disc = appliedCoupon.type === 'percent' ? Math.round((subtotal * appliedCoupon.value) / 100) : appliedCoupon.value;
+    if (appliedCoupon.maxDiscount) disc = Math.min(disc, appliedCoupon.maxDiscount);
+    disc = Math.min(disc, subtotal);
+  }
+  const afterDisc = Math.max(0, subtotal - disc);
+  const freeDel = appSettings.free_delivery_threshold > 0 && afterDisc >= appSettings.free_delivery_threshold;
+  const del = freeDel ? 0 : (currentDeliveryZone === 'in' ? safeNumber(appSettings.del_in, 60) : safeNumber(appSettings.del_out, 120));
+  const taxAmt = Math.round(afterDisc * (appSettings.tax||0) / 100);
+  const total = afterDisc + del + taxAmt;
+
+  const payLabel = selectedPayMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি' : (selectedPayMethod === 'bkash' ? 'বিকাশ' : 'নগদ');
+  const lines = cart.map((i, idx) => `${idx + 1}. ${i.title}` +
+    (i.selectedSize ? ` | সাইজ: ${i.selectedSize}` : '') +
+    (i.selectedColor ? ` | কালার: ${i.selectedColor}` : '') +
+    ` × ${i.qty} = ৳${fmt(i.price * i.qty)}`);
+
+  const msg = [
+    `🛒 নতুন অর্ডার — ${appSettings.store_name || 'MM BAZAAR'}`,
+    '',
+    ...lines,
+    '',
+    `সাবটোটাল: ৳${fmt(subtotal)}`,
+    disc ? `ডিসকাউন্ট${appliedCoupon ? ' (' + appliedCoupon.code + ')' : ''}: -৳${fmt(disc)}` : '',
+    `ডেলিভারি চার্জ: ৳${fmt(del)}`,
+    taxAmt ? `ভ্যাট: ৳${fmt(taxAmt)}` : '',
+    `সর্বমোট: ৳${fmt(total)}`,
+    '',
+    `নাম: ${name}`,
+    `মোবাইল: ${phone}`,
+    `ঠিকানা: ${addr}`,
+    notes ? `নোট: ${notes}` : '',
+    `পেমেন্ট: ${payLabel}`
+  ].filter(l => l !== '').join('\n');
+
+  const url = `https://wa.me/88${waNumber.replace(/^88/, '')}?text=${encodeURIComponent(msg)}`;
+  const win = window.open(url, '_blank');
+  if(!win) showToast('পপআপ ব্লকড — হোয়াটসঅ্যাপ অ্যাপ থেকে অর্ডার করুন', true);
+  else showToast('WhatsApp-এ অর্ডার মেসেজ তৈরি হয়েছে — পাঠান চাপুন');
 };
 
 // ==========================================
@@ -2000,8 +2092,21 @@ window.saveProfileEdit = async () => {
 // ==========================================
 // 12. USER ORDER HISTORY
 // ==========================================
+const GUEST_ORDERS_KEY = 'mm_guest_orders';
+function rememberGuestOrder(orderId) {
+  try {
+    const ids = JSON.parse(localStorage.getItem(GUEST_ORDERS_KEY) || '[]');
+    ids.unshift(orderId);
+    localStorage.setItem(GUEST_ORDERS_KEY, JSON.stringify([...new Set(ids)].slice(0, 15)));
+  } catch(e) { /* storage blocked — guests still get the WhatsApp/order confirmation toast */ }
+}
+function guestOrderIds() {
+  try { return JSON.parse(localStorage.getItem(GUEST_ORDERS_KEY) || '[]') || []; } catch(e) { return []; }
+}
+
 window.showOrders = async () => {
-  if(!currentUser) return openAuthModal();
+  const guestIds = currentUser ? [] : guestOrderIds();
+  if(!currentUser && !guestIds.length) return openAuthModal();
   
   document.getElementById('genericTitle').innerText = '📦 আমার অর্ডারসমূহ';
   document.getElementById('genericContent').innerHTML = '<p style="text-align:center;padding:20px;font-weight:600;">লোড হচ্ছে...</p>';
@@ -2009,9 +2114,18 @@ window.showOrders = async () => {
   setTimeout(() => document.getElementById('genericModal').classList.add('active'), 10);
   
   try {
-    const snap = await getDocs(query(collection(db, 'orders'), where('userId', '==', currentUser.uid)));
-    let orders = []; 
-    snap.forEach(d => orders.push({ id: d.id, ...d.data() }));
+    let orders = [];
+    if(currentUser) {
+      const snap = await getDocs(query(collection(db, 'orders'), where('userId', '==', currentUser.uid)));
+      snap.forEach(d => orders.push({ id: d.id, ...d.data() }));
+    } else {
+      for(const oid of guestIds) {
+        try {
+          const ds = await getDoc(doc(db, 'orders', oid));
+          if(ds.exists()) orders.push({ id: ds.id, ...ds.data() });
+        } catch(e) { /* order removed or rules blocked — skip it */ }
+      }
+    }
     orders.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     if(!orders.length) { 
@@ -2132,6 +2246,7 @@ window.openReviewModal = (pid) => {
 };
 
 window.submitReview = async () => {
+  if(!currentUser) return openAuthModal(); /* reviews are tied to an account */
   const pid = document.getElementById('reviewModal').dataset.pid;
   const rating = parseFloat(document.getElementById('revRating').value);
   const text = document.getElementById('revText').value.trim();
