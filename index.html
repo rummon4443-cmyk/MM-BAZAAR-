@@ -268,6 +268,31 @@ body.has-marquee .search-container { top: calc(130px + var(--safe-top)); }
 .custom-checkbox input:checked + .checkmark { background: var(--gold); border-color: var(--gold); }
 .checkmark::after { content: '✔'; color: #fff; font-size: 12px; display: none; }
 .custom-checkbox input:checked + .checkmark::after { display: block; }
+
+/* ==========================================
+   MISSING UI ELEMENTS (PATCH V2)
+   ========================================== */
+
+/* 1. Order Status Pills */
+.status-pill { display: inline-block; padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+.status-pending { background: var(--gold-glow); color: var(--gold); }
+.status-shipped { background: rgba(59, 130, 246, 0.12); color: #2563EB; }
+.status-delivered { background: var(--success-bg); color: var(--success); }
+.status-cancelled { background: var(--danger-bg); color: var(--danger); }
+body.dark-mode .status-pending { background: rgba(245, 158, 11, 0.18); color: var(--gold-light); }
+body.dark-mode .status-shipped { background: rgba(59, 130, 246, 0.2); color: #93C5FD; }
+
+/* 2. Cart Item */
+.cart-item { display: flex; align-items: center; gap: 14px; background: var(--surface); padding: 14px; border-radius: 16px; margin: 0 16px 12px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm); }
+.cart-item img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; border: 1px solid var(--border-subtle); flex-shrink: 0; }
+
+/* 3. Recently Viewed Scroll */
+.recently-viewed-scroll { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 20px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.recently-viewed-scroll::-webkit-scrollbar { display: none; }
+.recently-viewed-scroll > * { min-width: 140px; max-width: 140px; flex-shrink: 0; scroll-snap-align: start; }
+
+/* 4. Prevent Background Scroll When Modal Open */
+body.modal-open { overflow: hidden; }
 </style>
 </head>
 <body>
