@@ -3128,8 +3128,142 @@ setTimeout(() => {
     w.addEventListener('online', function () { toast('আবার অনলাইনে ✓'); });
   }
 
+  /* ---------- Auto-rotating home banners (one after another) ---------- */
+  function initBannerAutoSlide() {
+    var track = d.getElementById('bannerCarousel');
+    var dotsBox = d.getElementById('bannerDots');
+    if (!track) return;
+
+    var DELAY = 4500;        /* how long each banner stays visible */
+    var RESUME_AFTER = 8000; /* hold after the user swipes by hand */
+    var timer = null, resumeTimer = null, lastProgrammatic = 0, activeIdx = 0;
+
+    function cards() {
+      var out = [];
+      for (var i = 0; i < track.children.length; i++) {
+        var n = track.children[i];
+        if (n.nodeType === 1 && n.classList.contains('banner-card')) out.push(n);
+      }
+      return out;
+    }
+    function listLeft(i, list) { return list[i].offsetLeft - list[0].offsetLeft; }
+    function currentIndex() {
+      var list = cards();
+      if (!list.length) return 0;
+      var x = track.scrollLeft, best = 0, dist = Infinity;
+      for (var i = 0; i < list.length; i++) {
+        var dd = Math.abs(listLeft(i, list) - x);
+        if (dd < dist) { dist = dd; best = i; }
+      }
+      return best;
+    }
+    function paintDots() {
+      var list = cards();
+      if (!list.length) return;
+      activeIdx = currentIndex();
+      if (dotsBox) {
+        if (dotsBox.children.length !== list.length) {
+          var html = '';
+          for (var i = 0; i < list.length; i++) {
+            html += '<div class="banner-dot' + (i === activeIdx ? ' active' : '') + '" data-idx="' + i + '"></div>';
+          }
+          dotsBox.innerHTML = html;
+        }
+        for (var j = 0; j < dotsBox.children.length; j++) {
+          dotsBox.children[j].classList.toggle('active', j === activeIdx);
+        }
+      }
+    }
+    function goTo(idx, instant) {
+      var list = cards();
+      if (!list.length) return;
+      idx = ((idx % list.length) + list.length) % list.length;
+      var left = listLeft(idx, list);
+      activeIdx = idx;
+      lastProgrammatic = Date.now();
+      if (instant) {
+        track.scrollLeft = left;
+      } else {
+        try { track.scrollTo({ left: left, behavior: 'smooth' }); }
+        catch (e) { track.scrollLeft = left; }
+      }
+      paintDots();
+    }
+    function homeVisible() {
+      var page = track.parentElement;
+      while (page && page !== d.body && !(page.classList && page.classList.contains('page'))) page = page.parentElement;
+      return !page || page === d.body || page.classList.contains('active');
+    }
+    function next() {
+      if (d.hidden || !homeVisible()) return;
+      if (cards().length < 2) return;
+      goTo(activeIdx + 1);
+    }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    function start() {
+      stop();
+      if (d.hidden || cards().length < 2) return;
+      timer = setInterval(next, DELAY);
+    }
+    function pauseTemporarily() {
+      stop();
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(start, RESUME_AFTER);
+    }
+    function refresh() { paintDots(); start(); }
+
+    /* Keep the dots in sync with whichever banner is on screen */
+    var raf = 0;
+    track.addEventListener('scroll', function () {
+      if (raf) return;
+      raf = w.requestAnimationFrame ? w.requestAnimationFrame(function () { raf = 0; paintDots(); })
+                                    : setTimeout(function () { raf = 0; paintDots(); }, 60);
+      if (Date.now() - lastProgrammatic > 900) pauseTemporarily(); /* real user swipe */
+    }, { passive: true });
+
+    ['pointerdown', 'touchstart', 'wheel'].forEach(function (ev) {
+      track.addEventListener(ev, pauseTemporarily, { passive: true });
+    });
+
+    if (dotsBox) {
+      dotsBox.addEventListener('click', function (e) {
+        var t = e.target;
+        while (t && t !== dotsBox && !(t.classList && t.classList.contains('banner-dot'))) t = t.parentElement;
+        if (!t || t === dotsBox) return;
+        goTo(parseInt(t.getAttribute('data-idx'), 10) || 0);
+        start(); /* the user picked a banner: keep rotating from there */
+      });
+    }
+
+    d.addEventListener('visibilitychange', function () {
+      if (d.hidden) { stop(); } else { paintDots(); start(); }
+    });
+
+    /* Banners come from Firestore and from the instant-paint cache: rebuild on every change */
+    if (w.MutationObserver) {
+      new MutationObserver(refresh).observe(track, { childList: true });
+    }
+    /* Coming back to the home tab should resume the rotation */
+    var home = track.parentElement;
+    while (home && home !== d.body && !(home.classList && home.classList.contains('page'))) home = home.parentElement;
+    if (home && home !== d.body && w.MutationObserver) {
+      new MutationObserver(function () {
+        if (!home.classList.contains('active')) { stop(); return; }
+        if (cards().length && track.scrollLeft === 0 && activeIdx > 0) goTo(activeIdx, true);
+        paintDots();
+        start();
+      }).observe(home, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    /* the app paints the cached feed and then the live banners a moment later */
+    setTimeout(refresh, 800);
+    setTimeout(refresh, 3000);
+    refresh();
+  }
+
   /* ---------- boot ---------- */
   onReady(guard(function () {
+    initBannerAutoSlide();
     initSmartSearch();
     initSearchDebounce();
     initViewTransitions();
