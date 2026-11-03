@@ -63,7 +63,7 @@ body.dark-mode {
 input, textarea { user-select:text; }
 body { 
   background:var(--surface-sub); color:var(--text-main); 
-  padding-bottom:calc(76px + var(--safe-bottom)); 
+  padding-bottom:calc(72px + var(--safe-bottom)); /* 58px compact bottom-nav + 14px breathing room */
   min-height:100vh; overflow-x:hidden; 
   transition: background 0.3s ease, color 0.3s ease; 
   -webkit-font-smoothing: antialiased;
@@ -179,12 +179,12 @@ body.has-marquee .search-container { top: calc(130px + var(--safe-top)); }
 .cat-item.active .cat-name { color:var(--gold); font-weight:800; }
 
 /* Bottom Navigation */
-.bottom-nav { position:fixed; bottom:0; left:0; right:0; background:var(--surface); display:flex; justify-content:space-around; padding:10px 0 calc(10px + var(--safe-bottom)); border-top:1px solid var(--border-subtle); z-index:100; box-shadow: 0 -4px 20px rgba(0,0,0,0.03); backdrop-filter: blur(10px); }
-.nav-item { display:flex; flex-direction:column; align-items:center; color:var(--text-muted); font-size:11px; font-weight:600; cursor:pointer; gap:4px; position:relative; flex:1; padding:4px 0; transition: all 0.2s; }
+.bottom-nav { position:fixed; bottom:0; left:0; right:0; background:var(--surface); display:flex; justify-content:space-around; align-items:center; padding:6px 0 calc(6px + var(--safe-bottom)); border-top:1px solid var(--border-subtle); z-index:100; box-shadow: 0 -4px 20px rgba(0,0,0,0.03); backdrop-filter: blur(10px); }
+.nav-item { display:flex; flex-direction:column; align-items:center; color:var(--text-muted); font-size:10px; line-height:1.15; font-weight:600; cursor:pointer; gap:3px; position:relative; flex:1; padding:2px 0; transition: all 0.2s; }
 .nav-item.active { color:var(--gold); font-weight:800; transform: translateY(-2px); }
-.nav-icon { font-size:22px; transition: transform 0.2s; }
+.nav-icon { font-size:20px; line-height:1; transition: transform 0.2s; }
 .nav-item.active .nav-icon { transform: scale(1.1); }
-.nav-dot { width:4px; height:4px; border-radius:50%; background:var(--gold); opacity:0; transition: opacity 0.2s; }
+.nav-dot { width:3px; height:3px; border-radius:50%; background:var(--gold); opacity:0; transition: opacity 0.2s; }
 .nav-item.active .nav-dot { opacity:1; }
 
 /* Pages */
@@ -370,7 +370,7 @@ button:active, .icon-btn:active, .btn-main:active, .btn-outline:active, .btn-qui
 
 /* ---------- 4. Native app feel ---------- */
 #scrollTopBtn {
-  position: fixed; right: 16px; bottom: calc(88px + var(--safe-bottom));
+  position: fixed; right: 16px; bottom: calc(70px + var(--safe-bottom));
   width: 48px; height: 48px; border: none; border-radius: 50%;
   background: var(--gold-gradient); color: #FFF; font-size: 20px; font-weight: 900;
   display: flex; align-items: center; justify-content: center;
@@ -442,7 +442,7 @@ button:active, .icon-btn:active, .btn-main:active, .btn-outline:active, .btn-qui
   #imgZoomOverlay img { max-height: 82vh; }
 }
 @media (min-width: 768px) {
-  #scrollTopBtn { right: 24px; bottom: calc(96px + var(--safe-bottom)); }
+  #scrollTopBtn { right: 24px; bottom: calc(80px + var(--safe-bottom)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .product-img-box, .skeleton, .flash-timer, .icon-btn.cart-float, .page.active, .wish-btn.bump, #ptrIndicator.refreshing .ptr-arrow {
