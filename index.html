@@ -293,6 +293,18 @@ body.dark-mode .status-shipped { background: rgba(59, 130, 246, 0.2); color: #93
 
 /* 4. Prevent Background Scroll When Modal Open */
 body.modal-open { overflow: hidden; }
+
+/* ==========================================
+   TOP ACTION BAR REMOVED (LIVE CHAT / WHATSAPP)
+   Markup is kept so the JS that sets #topWaBtn.href
+   keeps working; the bar is only hidden visually and
+   the page offsets are reduced by the bar's height.
+   ========================================== */
+.top-action-bar { display: none !important; }
+.page { padding-top: calc(67px + var(--safe-top)); }
+.search-container { top: calc(67px + var(--safe-top)); }
+body.has-marquee .page { padding-top: calc(95px + var(--safe-top)); }
+body.has-marquee .search-container { top: calc(95px + var(--safe-top)); }
 </style>
 </head>
 <body>
