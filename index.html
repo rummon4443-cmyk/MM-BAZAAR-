@@ -545,6 +545,55 @@ body.dark-mode .bottom-nav { border-top-color: var(--hairline-dark); box-shadow:
   .icon-btn { width: 32px; height: 32px; font-size: 14px; }
   .search-container { padding-left: 10px; padding-right: 10px; }
 }
+/* ==========================================
+   V5 — COMPACT HOME FEED
+   Slimmer banner, slimmer category strip and
+   denser 2-column cards, so a full 2×2 block
+   (4 products) is visible above the bottom nav.
+   ========================================== */
+:root {
+  --banner-h: 84px;      /* was 170px */
+  --cat-thumb: 38px;     /* was 64px  */
+  --card-img-h: 82px;    /* was 180px */
+}
+
+/* ---------- 1. Thinner banner ---------- */
+.banner-wrapper { padding: 4px 14px 4px; }
+.banner-carousel { gap: 10px; border-radius: 13px; padding-bottom: 0; }
+.banner-card { height: var(--banner-h); border-radius: 13px; font-size: 12px; }
+.banner-dots { margin-top: 3px; gap: 4px; }
+.banner-dot { width: 5px; height: 5px; }
+.banner-dot.active { width: 16px; border-radius: 3px; }
+
+/* ---------- 2. Thinner category strip ---------- */
+.cat-scroll-wrap { padding: 2px 0 3px; }
+.cat-scroll { gap: 10px; padding: 0 14px; }
+.cat-item { min-width: 56px; }
+.cat-thumb { width: var(--cat-thumb); height: var(--cat-thumb); border-radius: 12px; border-width: 1.5px; }
+.cat-item.active .cat-thumb { transform: translateY(-2px); }
+.cat-name { font-size: 10px; line-height: 1.2; margin-top: 3px; width: 56px; }
+
+/* ---------- 3. Tighter section header ---------- */
+.section-header { padding: 5px 14px 3px; }
+.section-title { font-size: 15px; }
+.section-link { font-size: 11.5px; }
+
+/* ---------- 4. Denser 2-column product grid ---------- */
+.product-grid { gap: 8px; padding: 0 14px 16px; }
+.product-card { border-radius: 12px; }
+.product-img-box { height: var(--card-img-h); }
+.wish-btn { top: 5px; right: 5px; width: 24px; height: 24px; font-size: 11.5px; }
+.badge-discount, .badge-flash { top: 5px; left: 5px; font-size: 9px; padding: 1px 5px; border-radius: 6px; }
+.badge-out-of-stock { font-size: 11px; letter-spacing: 0.4px; }
+.product-details { padding: 4px 8px 6px; line-height: 1.2; }
+.product-brand { display: block; font-size: 8.5px; line-height: 1.1; letter-spacing: 0.3px; margin-bottom: 1px; }
+.product-rating { font-size: 9.5px; line-height: 1.2; color: var(--gold); font-weight: 700; margin-bottom: 2px; }
+.product-title { font-size: 11px; line-height: 1.25; min-height: 28px; margin-bottom: 3px; }
+.product-pricing { margin-bottom: 3px; gap: 4px; }
+.price-current { font-size: 13.5px; }
+.price-old { font-size: 9.5px; }
+.product-lowstock { font-size: 9.5px; line-height: 1.2; color: var(--danger); font-weight: 700; margin-bottom: 2px; }
+.btn-quick-add { padding: 3px 4px; font-size: 9.5px; border-radius: 7px; border-width: 1px; gap: 3px; }
 </style>
 </head>
 <body>
@@ -1168,7 +1217,7 @@ function renderProducts(items, targetId) {
     
     let ratingHtml = '';
     if(p.avgRating && p.reviewCount > 0) {
-      ratingHtml = `<div style="font-size:11px; color:var(--gold); font-weight:700; margin-bottom:6px;">⭐ ${p.avgRating.toFixed(1)} (${p.reviewCount})</div>`;
+      ratingHtml = `<div class="product-rating">⭐ ${p.avgRating.toFixed(1)} (${p.reviewCount})</div>`;
     }
 
     return `
@@ -1191,7 +1240,7 @@ function renderProducts(items, targetId) {
               <span class="price-current">৳${fmt(p.price)}</span>
               ${hasOld ? `<span class="price-old">৳${fmt(p.oldPrice)}</span>` : ''}
             </div>
-            ${(!isOutOfStock && p.stock < 5) ? `<div style="font-size:10.5px;color:var(--danger);font-weight:700;margin-bottom:6px;">মাত্র ${p.stock} টি বাকি</div>` : ''}
+            ${(!isOutOfStock && p.stock < 5) ? `<div class="product-lowstock">মাত্র ${p.stock} টি বাকি</div>` : ''}
             <button class="btn-quick-add" ${isOutOfStock?'disabled':''} onclick="event.stopPropagation();quickAddToCart('${esc(p.id)}')">${isOutOfStock?'স্টক নেই':'🛒 ব্যাগে যোগ'}</button>
           </div>
         </div>
