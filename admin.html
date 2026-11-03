@@ -190,6 +190,7 @@ input:checked + .slider { background-color: var(--success); box-shadow: 0 0 10px
 input:checked + .slider:before { transform: translateX(22px); }
 .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-light); }
 .toggle-row:last-child { border-bottom: none; }
+.soon-tag { font-size: 9.5px; font-weight: 800; color: var(--warning); border: 1px solid currentColor; border-radius: 6px; padding: 1px 5px; margin-left: 6px; white-space: nowrap; vertical-align: middle; }
 
 /* Status Pills & Badges */
 .status-pill { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; }
@@ -316,6 +317,19 @@ input:checked + .slider:before { transform: translateX(22px); }
         <div class="card-title"><span>📈 আজকের লাইভ রিপোর্ট</span></div>
         <div id="dashExtraContent" style="font-size:14px;line-height:1.6;">লোড হচ্ছে...</div>
       </div>
+
+      <div class="glass-card">
+        <div class="card-title">
+          <span>💸 অন্যান্য খরচ (অ্যাড · কুরিয়ার · অফিস)</span>
+          <strong id="stOtherCost" style="color:var(--danger);font-size:14px;">৳০</strong>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>খরচের বিবরণ</label><input type="text" id="expTitle" class="form-input" placeholder="যেমন: ফেসবুক অ্যাড"></div>
+          <div class="form-group"><label>টাকা (৳)</label><input type="number" id="expAmount" class="form-input" placeholder="0" min="0" inputmode="numeric"></div>
+        </div>
+        <button class="btn-gold" onclick="saveExpense()">➕ খরচ যোগ করুন</button>
+        <div id="expenseListContainer" style="margin-top:14px;"></div>
+      </div>
     </section>
 
     <!-- ========================================== -->
@@ -432,7 +446,7 @@ input:checked + .slider:before { transform: translateX(22px); }
             <button class="btn-secondary" onclick="triggerImgUpload('pImgUrl')">📷 ছবি বাছুন</button>
           </div>
           <button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="triggerImgUpload('pImageGallery', true)">➕ গ্যালারিতে আরও ছবি যোগ করুন</button>
-          <input type="text" id="pImageGalleryText" class="form-input" style="margin-top:8px;" placeholder="গ্যালারি লিংকগুলো কমা (,) দিয়ে লিখুন" onchange="galleryImages = this.value.split(',').map(s=>s.trim()).filter(Boolean); renderGalleryPreview();">
+          <input type="text" id="pImageGalleryText" class="form-input" style="margin-top:8px;" placeholder="গ্যালারি লিংকগুলো কমা (,) দিয়ে লিখুন" onchange="setGalleryFromText(this.value)">
           <div id="galleryPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
         </div>
         <button class="btn-gold" onclick="saveProductData()">💾 প্রোডাক্ট সেভ করুন</button>
@@ -673,19 +687,19 @@ input:checked + .slider:before { transform: translateX(22px); }
       <div class="glass-card">
         <div class="card-title"><span>🚀 অ্যাডভান্সড মার্কেটিং ও নোটিফিকেশন</span></div>
         <div class="form-row">
-          <div class="form-group"><label>লয়্যালটি পয়েন্ট (১ পয়েন্ট = কত ৳)</label><input type="number" id="cfgLoyaltyRate" class="form-input" value="1"></div>
-          <div class="form-group"><label>রেফারেল বোনাস (৳)</label><input type="number" id="cfgReferralBonus" class="form-input" value="50"></div>
+          <div class="form-group"><label>লয়্যালটি পয়েন্ট (১ পয়েন্ট = কত ৳) <span class="soon-tag">শীঘ্রই</span></label><input type="number" id="cfgLoyaltyRate" class="form-input" value="1"></div>
+          <div class="form-group"><label>রেফারেল বোনাস (৳) <span class="soon-tag">শীঘ্রই</span></label><input type="number" id="cfgReferralBonus" class="form-input" value="50"></div>
         </div>
-        <div class="toggle-row"><div class="list-title">অর্ডার কনফার্মেশন SMS নোটিফিকেশন</div><label class="switch"><input type="checkbox" id="cfgSmsNotify"><span class="slider"></span></label></div>
-        <div class="toggle-row"><div class="list-title">অ্যাবান্ডনড কার্ট রিমাইন্ডার</div><label class="switch"><input type="checkbox" id="cfgAbandonedCart"><span class="slider"></span></label></div>
+        <div class="toggle-row"><div class="list-title">অর্ডার কনফার্মেশন SMS নোটিফিকেশন <span class="soon-tag">শীঘ্রই</span></div><label class="switch"><input type="checkbox" id="cfgSmsNotify"><span class="slider"></span></label></div>
+        <div class="toggle-row"><div class="list-title">অ্যাবান্ডনড কার্ট রিমাইন্ডার <span class="soon-tag">শীঘ্রই</span></div><label class="switch"><input type="checkbox" id="cfgAbandonedCart"><span class="slider"></span></label></div>
       </div>
 
       <!-- Advanced API & OTP Settings -->
       <div class="glass-card">
         <div class="card-title"><span>🛡️ সিকিউরিটি ও API সেটিংস</span></div>
-        <div class="toggle-row"><div class="list-title">মোবাইল OTP ভেরিফিকেশন</div><label class="switch"><input type="checkbox" id="cfgOtpOn"><span class="slider"></span></label></div>
-        <div class="form-group"><label>SMS API Key (BulkSMSBD)</label><input type="text" id="cfgSmsApi" class="form-input" placeholder="API Key দিন"></div>
-        <div class="form-group"><label>কুরিয়ার API Key (Steadfast/Pathao)</label><input type="text" id="cfgCourierApi" class="form-input" placeholder="Courier API Key দিন"></div>
+        <div class="toggle-row"><div class="list-title">মোবাইল OTP ভেরিফিকেশন <span class="soon-tag">শীঘ্রই</span></div><label class="switch"><input type="checkbox" id="cfgOtpOn"><span class="slider"></span></label></div>
+        <div class="form-group"><label>SMS API Key (BulkSMSBD) <span class="soon-tag">শীঘ্রই</span></label><input type="text" id="cfgSmsApi" class="form-input" placeholder="API Key দিন"></div>
+        <div class="form-group"><label>কুরিয়ার API Key (Steadfast/Pathao) <span class="soon-tag">শীঘ্রই</span></label><input type="text" id="cfgCourierApi" class="form-input" placeholder="Courier API Key দিন"></div>
       </div>
 
       <!-- SEO & PWA Settings -->
@@ -900,6 +914,7 @@ function loadAllAdminData() {
   onSnapshot(collection(db, 'products'), snap => {
     allProducts = []; snap.forEach(d => allProducts.push({ id: d.id, ...d.data() }));
     renderProductsList(); calculateStats(); renderBundleDropdown(); renderUsersList();
+    renderSuppliersList(); /* product count per supplier stays accurate */
   }, handleErr('Products'));
 
   onSnapshot(collection(db, 'suppliers'), snap => {
@@ -941,6 +956,7 @@ function loadAllAdminData() {
 
   onSnapshot(collection(db, 'expenses'), snap => {
     allExpenses = []; snap.forEach(d => allExpenses.push({ id: d.id, ...d.data() }));
+    renderExpensesList();
     calculateStats();
   }, handleErr('Expenses'));
 
@@ -1018,6 +1034,64 @@ function loadAllAdminData() {
 // ==========================================
 // 6. DASHBOARD STATS & ANALYTICS
 // ==========================================
+window.saveExpense = async () => {
+  const title = document.getElementById('expTitle').value.trim();
+  const amount = Number(document.getElementById('expAmount').value);
+  if(!title) return showToast('খরচের বিবরণ লিখুন', true);
+  if(!amount || amount <= 0) return showToast('সঠিক টাকার পরিমাণ দিন', true);
+  try {
+    await addDoc(collection(db, 'expenses'), {
+      title,
+      amount,
+      by: auth.currentUser ? (auth.currentUser.email || 'admin') : 'admin',
+      createdAt: new Date().toISOString()
+    });
+    document.getElementById('expTitle').value = '';
+    document.getElementById('expAmount').value = '';
+    showToast('খরচ যোগ হয়েছে');
+    logActivity(`নতুন খরচ: ${title} ৳${fmt(amount)}`);
+  } catch(e) {
+    showToast('ব্যর্থ: ' + e.message, true);
+  }
+};
+
+window.deleteExpense = async (id) => {
+  const e = allExpenses.find(x => x.id === id);
+  if(!confirm(`খরচ "${e ? e.title : ''}" ডিলিট করবেন?`)) return;
+  try {
+    await deleteDoc(doc(db, 'expenses', id));
+    showToast('খরচ ডিলিট হয়েছে');
+    logActivity(`খরচ ডিলিট: ${e ? e.title : id}`);
+  } catch(e2) {
+    showToast('ব্যর্থ: ' + e2.message, true);
+  }
+};
+
+function renderExpensesList() {
+  const c = document.getElementById('expenseListContainer');
+  if(!c) return;
+  const total = allExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalEl = document.getElementById('stOtherCost');
+  if(totalEl) totalEl.innerText = `৳${fmt(total)}`;
+
+  if(!allExpenses.length) {
+    c.innerHTML = '<p style="text-align:center;font-size:12px;color:var(--text-muted);">এখনো কোনো খরচ যোগ করা হয়নি</p>';
+    return;
+  }
+  const list = [...allExpenses].sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  c.innerHTML = list.map(e => `
+    <div class="list-item">
+      <div>
+        <div class="list-title" style="font-size:12px;">${esc(e.title)}</div>
+        <div class="list-subtitle">${e.createdAt ? new Date(e.createdAt).toLocaleDateString('bn-BD') : ''}${e.by ? ' · ' + esc(e.by) : ''}</div>
+      </div>
+      <div class="flex-row">
+        <span style="color:var(--danger);font-weight:800;font-size:13px;">৳${fmt(e.amount)}</span>
+        <button class="btn-danger" onclick="deleteExpense('${e.id}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
 function calculateStats() {
   let sales = 0, dropCost = 0, otherCost = 0, pend = 0, todaySales = 0, todayOrders = 0;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -1328,10 +1402,37 @@ window.renderRefunds = () => {
 };
 
 window.handleRefund = async (id, status) => {
-  if(confirm(`আপনি কি নিশ্চিত রিফান্ডটি ${status === 'approved' ? 'অ্যাপ্রুভ' : 'রিজেক্ট'} করতে চান?`)) {
-    await updateDoc(doc(db, 'orders', id), { refundStatus: status, status: status === 'approved' ? 'refunded' : 'delivered' });
+  if(!confirm(`আপনি কি নিশ্চিত রিফান্ডটি ${status === 'approved' ? 'অ্যাপ্রুভ' : 'রিজেক্ট'} করতে চান?`)) return;
+  try {
+    await runTransaction(db, async tr => {
+      const ref = doc(db, 'orders', id);
+      const snap = await tr.get(ref);
+      if(!snap.exists()) return;
+      const o = snap.data();
+
+      /* Approving a refund means the goods come back — put the stock back once */
+      if(status === 'approved' && o.stockDeducted) {
+        for(const it of (o.items || [])) {
+          const pRef = doc(db, 'products', it.id);
+          const pSnap = await tr.get(pRef);
+          if(pSnap.exists()) tr.update(pRef, { stock: (pSnap.data().stock || 0) + (it.qty || 1) });
+        }
+      }
+
+      const history = o.statusHistory || [];
+      history.push({ status: status === 'approved' ? 'refunded' : 'delivered', at: new Date().toISOString(), by: 'admin' });
+      tr.update(ref, {
+        refundStatus: status,
+        status: status === 'approved' ? 'refunded' : 'delivered',
+        stockDeducted: status === 'approved' ? false : !!o.stockDeducted,
+        statusHistory: history,
+        refundedAt: status === 'approved' ? new Date().toISOString() : (o.refundedAt || null)
+      });
+    });
     showToast(`রিফান্ড ${status === 'approved' ? 'সফল' : 'বাতিল'} হয়েছে`);
     logActivity(`রিফান্ড ${status === 'approved' ? 'অ্যাপ্রুভ' : 'রিজেক্ট'}: #${id.slice(0,8)}`);
+  } catch(e) {
+    showToast('ব্যর্থ: ' + e.message, true);
   }
 };
 
@@ -1414,10 +1515,22 @@ function renderGalleryPreview() {
   document.getElementById('galleryPreview').innerHTML = galleryImages.map((url, i) => `
     <div style="position:relative">
       <img src="${url}" style="width:50px;height:50px;border-radius:8px;object-fit:cover;border:1px solid var(--border);">
-      <button onclick="galleryImages.splice(${i},1);renderGalleryPreview();document.getElementById('pImageGalleryText').value=galleryImages.join(',')" style="position:absolute;top:-5px;right:-5px;background:var(--danger);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;">x</button>
+      <button onclick="removeGalleryImage(${i})" style="position:absolute;top:-5px;right:-5px;background:var(--danger);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;">x</button>
     </div>
   `).join('');
 }
+
+/* The gallery input + the ✕ buttons are inline handlers, so they must live on window */
+window.setGalleryFromText = (value) => {
+  galleryImages = String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+  document.getElementById('pImageGalleryText').value = galleryImages.join(',');
+  renderGalleryPreview();
+};
+window.removeGalleryImage = (index) => {
+  galleryImages.splice(index, 1);
+  document.getElementById('pImageGalleryText').value = galleryImages.join(',');
+  renderGalleryPreview();
+};
 
 // ==========================================
 // 9. PRODUCT MANAGEMENT (CRUD + Quick Stock)
@@ -2100,15 +2213,105 @@ window.saveToggles = async () => {
 
 // Initialize System
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => closeModal(m.id)); });
+// ==========================================
+// 19. SUPPLIER (DROPSHIP) CRUD
+// ==========================================
+window.saveSupplier = async () => {
+  const name = document.getElementById('supName').value.trim();
+  const phone = document.getElementById('supPhone').value.trim();
+  const wa = document.getElementById('supWa').value.trim();
+
+  if(!name) return showToast('সাপ্লায়ার নাম দিন', true);
+  if(!phone) return showToast('সাপ্লায়ারের মোবাইল নম্বর দিন', true);
+
+  const data = {
+    name,
+    phone,
+    whatsapp: wa || phone,
+    address: document.getElementById('supAddress').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    if(editingSupplierId) {
+      await updateDoc(doc(db, 'suppliers', editingSupplierId), data);
+      showToast('সাপ্লায়ার আপডেট হয়েছে');
+      logActivity('সাপ্লায়ার আপডেট: ' + name);
+      cancelSupplierEdit();
+    } else {
+      data.createdAt = new Date().toISOString();
+      await addDoc(collection(db, 'suppliers'), data);
+      showToast('নতুন সাপ্লায়ার তৈরি হয়েছে');
+      logActivity('নতুন সাপ্লায়ার: ' + name);
+      cancelSupplierEdit();
+    }
+  } catch(e) {
+    showToast('ব্যর্থ: ' + e.message, true);
+  }
+};
+
+window.editSupplier = (id) => {
+  const s = allSuppliers.find(x => x.id === id);
+  if(!s) return;
+  document.getElementById('supName').value = s.name || '';
+  document.getElementById('supPhone').value = s.phone || '';
+  document.getElementById('supWa').value = s.whatsapp || '';
+  document.getElementById('supAddress').value = s.address || '';
+  editingSupplierId = id;
+  document.getElementById('supFormTitle').innerText = '🔄 সাপ্লায়ার আপডেট';
+  document.getElementById('btnCancelSupEdit').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.cancelSupplierEdit = () => {
+  editingSupplierId = null;
+  document.getElementById('supName').value = '';
+  document.getElementById('supPhone').value = '';
+  document.getElementById('supWa').value = '';
+  document.getElementById('supAddress').value = '';
+  document.getElementById('supFormTitle').innerText = '➕ নতুন সাপ্লায়ার প্রোফাইল';
+  document.getElementById('btnCancelSupEdit').classList.add('hidden');
+};
+
+window.deleteSupplier = async (id) => {
+  const s = allSuppliers.find(x => x.id === id);
+  const linked = allProducts.filter(p => p.supplierId === id).length;
+  const msg = linked
+    ? `এই সাপ্লায়ারের ${linked} টি প্রোডাক্ট যুক্ত আছে (প্রোডাক্ট থাকবে, শুধু সাপ্লায়ার লিংক মুছে যাবে)। ডিলিট করবেন?`
+    : 'সাপ্লায়ার ডিলিট করবেন?';
+  if(!confirm(msg)) return;
+  try {
+    await deleteDoc(doc(db, 'suppliers', id));
+    showToast('সাপ্লায়ার ডিলিট হয়েছে');
+    logActivity(`সাপ্লায়ার ডিলিট: ${s ? s.name : id}`);
+    if(editingSupplierId === id) cancelSupplierEdit();
+  } catch(e) {
+    showToast('ব্যর্থ: ' + e.message, true);
+  }
+};
+
 function renderSuppliersList() {
-  document.getElementById('supplierListContainer').innerHTML = allSuppliers.map(s => `
+  const box = document.getElementById('supplierListContainer');
+  if(!allSuppliers.length) {
+    box.innerHTML = '<p style="text-align:center;font-size:12px;color:var(--text-muted);">এখনো কোনো সাপ্লায়ার যোগ করা হয়নি</p>';
+    return;
+  }
+  box.innerHTML = allSuppliers.map(s => {
+    const wa = String(s.whatsapp || s.phone || '').replace(/[^0-9]/g, '');
+    const prodCount = allProducts.filter(p => p.supplierId === s.id).length;
+    return `
     <div class="list-item">
-      <div><div class="list-title">${esc(s.name)}</div><div class="list-subtitle">${esc(s.phone)}</div></div>
+      <div>
+        <div class="list-title">${esc(s.name)}</div>
+        <div class="list-subtitle">📞 ${esc(s.phone || '')}${s.address ? ' · ' + esc(s.address) : ''} · ${prodCount} টি প্রোডাক্ট</div>
+      </div>
       <div class="flex-row">
-        <button class="btn-secondary" onclick="editSupplier('${s.id}')">এডিট</button> 
+        ${wa ? `<a href="https://wa.me/88${wa.replace(/^88/, '')}" target="_blank" class="btn-secondary" style="background:#10B981;color:#FFF;border:none;text-decoration:none;">🟢 WA</a>` : ''}
+        <button class="btn-secondary" onclick="editSupplier('${s.id}')">এডিট</button>
         <button class="btn-danger" onclick="deleteSupplier('${s.id}')">ডিলিট</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderSupplierDropdown() { 
