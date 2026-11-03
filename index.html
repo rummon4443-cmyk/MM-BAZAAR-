@@ -452,6 +452,99 @@ button:active, .icon-btn:active, .btn-main:active, .btn-outline:active, .btn-qui
     transform: none;
   }
 }
+
+/* ==========================================
+   V4 — SLIM HEADER + FUSED SEARCH + HAIRLINE NAV
+   • The top header (logo + actions) is now a
+     slim ~38px strip.
+   • The search bar sits flush under it, sharing
+     the same glass surface, so the two read as
+     ONE compact unit that stays pinned on scroll.
+   • The bottom nav divider is a 0.5px hairline.
+   ========================================== */
+:root {
+  --header-h: 38px;                            /* slim header height (was ~66px) */
+  --search-h: 34px;                            /* thin search field height */
+  --hairline: rgba(15, 23, 42, 0.09);          /* subtle divider, light mode */
+  --hairline-dark: rgba(255, 255, 255, 0.08);  /* subtle divider, dark mode */
+}
+
+/* ---------- 1. Extremely thin top header ---------- */
+.header {
+  padding: calc(4px + var(--safe-top)) 12px 0;
+  gap: 0;
+  border-bottom: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  z-index: 102;
+}
+.header-top-row { min-height: calc(var(--header-h) - 4px); }
+.header-logo { gap: 8px; font-size: 15.5px; letter-spacing: 0.2px; }
+.header-logo-icon { width: 28px; height: 28px; border-radius: 9px; font-size: 13px; box-shadow: 0 3px 9px var(--gold-glow); }
+.header-actions { gap: 6px; }
+.icon-btn { width: 34px; height: 34px; border-radius: 11px; font-size: 15px; }
+.cart-badge, .chat-badge { top: -4px; right: -4px; font-size: 9px; padding: 1px 5px; }
+
+/* ---------- 2. Search bar fused to the header ---------- */
+.page { padding-top: calc(var(--header-h) + var(--safe-top)); }
+body.has-marquee .page { padding-top: calc(var(--header-h) + 28px + var(--safe-top)); }
+
+.search-container {
+  top: calc(var(--header-h) + var(--safe-top));
+  margin-top: -1px;                       /* 1px overlap: kills any hairline seam */
+  padding: 4px 12px 8px;
+  background: var(--glass-bg);            /* identical surface as the header */
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+body.has-marquee .search-container { top: calc(var(--header-h) + 28px + var(--safe-top)); }
+
+.search-container .search-bar {
+  min-height: var(--search-h);
+  padding: 0 12px;
+  gap: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-sub);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+.search-container .search-bar:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-glow);
+  transform: none;
+}
+.search-container .search-bar input { font-size: 13px; font-weight: 500; }
+.search-container .search-bar .search-ico { flex: 0 0 auto; }
+
+body.dark-mode .search-container { border-bottom-color: var(--hairline-dark); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35); }
+body.dark-mode .search-container .search-bar { box-shadow: none; }
+
+/* ---------- 3. Hairline divider above the bottom nav ---------- */
+.bottom-nav {
+  border-top: 0.5px solid var(--hairline);
+  box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.035);
+}
+body.dark-mode .bottom-nav { border-top-color: var(--hairline-dark); box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.4); }
+/* Devices with a classic 1x pixel grid can't paint a true half pixel — keep it faint. */
+@media (max-resolution: 1dppx) {
+  .bottom-nav { border-top-width: 1px; border-top-color: rgba(15, 23, 42, 0.07); }
+  body.dark-mode .bottom-nav { border-top-color: rgba(255, 255, 255, 0.06); }
+}
+
+/* Keep the compact stack tight on very small screens
+   (--header-h is shrunk in lockstep so header + search stay flush) */
+@media (max-width: 360px) {
+  :root { --header-h: 36px; --search-h: 32px; }
+  .header { padding-left: 10px; padding-right: 10px; }
+  .header-logo { font-size: 14.5px; gap: 6px; }
+  .header-logo-icon { width: 26px; height: 26px; font-size: 12px; }
+  .icon-btn { width: 32px; height: 32px; font-size: 14px; }
+  .search-container { padding-left: 10px; padding-right: 10px; }
+}
 </style>
 </head>
 <body>
@@ -514,7 +607,7 @@ button:active, .icon-btn:active, .btn-main:active, .btn-outline:active, .btn-qui
 <div class="page active" id="page-home">
   <div class="search-container">
     <div class="search-bar">
-      <span style="color:var(--text-muted);font-size:18px;">🔍</span>
+      <span class="search-ico" style="color:var(--text-muted);font-size:14px;line-height:1;">🔍</span>
       <input type="text" id="homeSearch" placeholder="পণ্য খুঁজুন..." oninput="handleSearch()">
     </div>
   </div>
@@ -560,7 +653,7 @@ button:active, .icon-btn:active, .btn-main:active, .btn-outline:active, .btn-qui
 <div class="page" id="page-category">
   <div class="search-container">
     <div class="search-bar">
-      <span style="color:var(--text-muted);font-size:18px;">🔍</span>
+      <span class="search-ico" style="color:var(--text-muted);font-size:14px;line-height:1;">🔍</span>
       <input type="text" id="catSearch" placeholder="ক্যাটাগরির ভেতর সার্চ..." oninput="handleSearch()">
     </div>
   </div>
