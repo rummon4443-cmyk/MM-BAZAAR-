@@ -1,0 +1,43 @@
+{
+  "id": "/MM-BAZAAR-/",
+  "name": "MM BAZAAR - অনলাইন শপিং",
+  "short_name": "MM BAZAAR",
+  "description": "MM BAZAAR — ইলেকট্রনিক্স, মুদি সামগ্রী, ফ্যাশন ও বিউটি পণ্যের অনলাইন শপ। দ্রুত ডেলিভারি, ক্যাশ অন ডেলিভারি।",
+  "lang": "bn",
+  "dir": "ltr",
+  "start_url": "./?src=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait",
+  "background_color": "#0B1120",
+  "theme_color": "#D97706",
+  "categories": ["shopping", "business"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "শপিং ব্যাগ",
+      "short_name": "ব্যাগ",
+      "url": "./?go=cart",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "ক্যাটালগ",
+      "short_name": "ক্যাটালগ",
+      "url": "./?go=category",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "পছন্দের তালিকা",
+      "short_name": "পছন্দ",
+      "url": "./?go=wishlist",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

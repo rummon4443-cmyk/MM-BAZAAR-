@@ -5,7 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>MM BAZAAR - অনলাইন শপিং</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#D97706">
+<meta name="theme-color" content="#D97706" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B1120" media="(prefers-color-scheme: dark)">
+<meta name="description" content="MM BAZAAR — ইলেকট্রনিক্স, মুদি সামগ্রী, ফ্যাশন ও বিউটি পণ্যের অনলাইন শপ। দ্রুত ডেলিভারি, ক্যাশ অন ডেলিভারি।">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MM BAZAAR">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -607,11 +618,119 @@ body.dark-mode .bottom-nav { border-top-color: var(--hairline-dark); box-shadow:
 #chatModal .chat-box > div:last-child > button { flex: 0 0 auto; white-space: nowrap; }
 #chatModal .modal-box { overflow-x: hidden; }
 #cartFooter .btn-outline { flex: 0 0 auto; white-space: nowrap; }
+
+/* ==========================================
+   V7 — ADVANCED TECH LAYER (visuals)
+   Native-feel gestures, smart-search UI, offline
+   snackbars, install sheet, perf & a11y.
+   ========================================== */
+
+/* ---------- 1. Native interaction basics ---------- */
+html { -webkit-text-size-adjust: 100%; }
+button, .nav-item, .cat-item, a { touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px; }
+body.dark-mode { color-scheme: dark; }
+
+/* ---------- 2. Render only what is on screen ---------- */
+.product-card { content-visibility: auto; contain-intrinsic-size: auto 196px; }
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .product-card { animation: qsReveal linear both; animation-timeline: view(); animation-range: entry 0% cover 18%; }
+    @keyframes qsReveal { from { opacity: 0.35; } to { opacity: 1; } }
+  }
+}
+
+/* ---------- 3. Cross-fade between tabs (View Transitions) ---------- */
+::view-transition-old(root) { animation: qsVtOut 0.16s ease both; }
+::view-transition-new(root) { animation: qsVtIn 0.22s ease both; }
+@keyframes qsVtOut { to { opacity: 0; } }
+@keyframes qsVtIn { from { opacity: 0; } }
+
+/* ---------- 4. Smart search ---------- */
+.search-bar .qs-clear, .search-bar .qs-mic {
+  border: none; background: transparent; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto;
+  font-size: 13px; color: var(--text-muted); padding: 0; line-height: 1;
+}
+.search-bar .qs-clear { display: none; }
+.search-bar .qs-clear.show { display: flex; }
+.search-bar .qs-mic.listening { background: var(--danger-bg); color: var(--danger); animation: qsMicPulse 1s ease-in-out infinite; }
+@keyframes qsMicPulse { 50% { transform: scale(1.15); } }
+.search-bar .qs-mic:active { transform: scale(0.88); }
+.qs-recent { display: none; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 7px; }
+.qs-recent.show { display: flex; }
+.qs-chip {
+  border: 1px solid var(--border-subtle); background: var(--surface); color: var(--text-sec);
+  font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 20px; cursor: pointer;
+  max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qs-chip:active { transform: scale(0.94); }
+.qs-chip-label { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.qs-chip-clear { border: none; background: transparent; color: var(--danger); font-size: 11px; font-weight: 700; cursor: pointer; padding: 4px; }
+
+/* ---------- 5. Swipe-to-delete cart rows ---------- */
+.cart-item { position: relative; transition: transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1); will-change: transform; }
+.cart-item.qs-swiping { transition: none; transform: translateX(var(--qs-dx, 0px)); }
+.cart-item .qs-swipe-bg {
+  position: absolute; inset: 0; border-radius: 16px; display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 20px; font-size: 15px; font-weight: 800; color: var(--danger);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0), rgba(239, 68, 68, 0.18));
+  opacity: 0; transition: opacity 0.18s ease; pointer-events: none;
+}
+.cart-item.qs-swiping .qs-swipe-bg { opacity: 1; }
+
+/* ---------- 6. Bottom sheet drag ---------- */
+.modal-box.qs-dragging { transition: none !important; }
+
+/* ---------- 7. Snackbar (undo / offline / update) ---------- */
+#qsSnack {
+  position: fixed; left: 50%; bottom: calc(68px + var(--safe-bottom)); transform: translate(-50%, 16px);
+  display: flex; align-items: center; gap: 12px; max-width: 92vw;
+  background: var(--black); color: #FFF; padding: 10px 12px 10px 16px; border-radius: 14px;
+  font-size: 12.5px; font-weight: 600; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+  z-index: 2600; opacity: 0; visibility: hidden; transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+}
+#qsSnack.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+#qsSnack .qs-snack-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#qsSnack .qs-snack-btn {
+  border: none; background: var(--gold-gradient); color: #FFF; font-weight: 800; font-size: 12px;
+  padding: 7px 12px; border-radius: 10px; cursor: pointer; white-space: nowrap; flex: 0 0 auto;
+}
+#qsSnack .qs-snack-close { border: none; background: transparent; color: #94A3B8; font-size: 14px; cursor: pointer; padding: 2px 4px; }
+
+/* ---------- 8. Install banner ---------- */
+#qsInstall {
+  position: fixed; left: 10px; right: 10px; bottom: calc(66px + var(--safe-bottom));
+  display: none; align-items: center; gap: 12px; padding: 11px 12px;
+  background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 18px;
+  box-shadow: var(--shadow-lg); z-index: 2500; transform: translateY(14px); opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#qsInstall.show { display: flex; opacity: 1; transform: translateY(0); }
+#qsInstall img { width: 40px; height: 40px; border-radius: 11px; flex: 0 0 auto; }
+#qsInstall .qs-inst-text { flex: 1; min-width: 0; }
+#qsInstall .qs-inst-title { font-size: 12.5px; font-weight: 800; color: var(--text-main); }
+#qsInstall .qs-inst-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
+#qsInstall .qs-inst-btn {
+  border: none; background: var(--gold-gradient); color: #FFF; font-weight: 800; font-size: 12px;
+  padding: 8px 14px; border-radius: 11px; cursor: pointer; flex: 0 0 auto; white-space: nowrap;
+}
+#qsInstall .qs-inst-x { border: none; background: transparent; color: var(--text-muted); font-size: 15px; cursor: pointer; padding: 2px; }
+
+/* ---------- 9. Toasts above install sheet ---------- */
+body.qs-has-install .toast { top: auto; bottom: calc(126px + var(--safe-bottom)); }
+body.qs-has-install #qsSnack { bottom: calc(136px + var(--safe-bottom)); }
 </style>
 </head>
 <body>
 <script>
-  if(localStorage.getItem('mm_bazaar_theme') === 'dark') { document.body.classList.add('dark-mode'); }
+  /* Theme boot (V7): respects the saved choice, otherwise follows the OS.
+     Runs before first paint so there is no light->dark flash. */
+  (function () {
+    var saved = localStorage.getItem('mm_bazaar_theme');
+    var sysDark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (saved === 'dark' || (!saved && sysDark)) document.body.classList.add('dark-mode');
+  })();
 </script>
 <div id="toast" class="toast"></div>
 <!-- ==========================================
@@ -872,10 +991,10 @@ body.dark-mode .bottom-nav { border-top-color: var(--hairline-dark); box-shadow:
   <div class="modal-box">
     <button class="close-btn" onclick="closeModal('checkoutModal')">✕</button>
     <h2 style="color:var(--text-main);margin-bottom:20px;font-weight:900;">🛍️ চেকআউট</h2>
-    <div class="form-group"><label>আপনার পূর্ণ নাম *</label><input type="text" id="chkName" placeholder="মোঃ কাওসার আহমেদ"></div>
-    <div class="form-group"><label>মোবাইল নম্বর (১১ ডিজিট) *</label><input type="tel" id="chkPhone" placeholder="017XXXXXXXX"></div>
-    <div class="form-group"><label>সম্পূর্ণ ঠিকানা *</label><textarea id="chkAddress" rows="3" placeholder="বাসা/রোড/থানা/জেলা"></textarea></div>
-    <div class="form-group"><label>অর্ডার নোট (ঐচ্ছিক)</label><input type="text" id="chkNotes" placeholder="বিশেষ কোনো নির্দেশনা..."></div>
+    <div class="form-group"><label>আপনার পূর্ণ নাম *</label><input type="text" id="chkName" placeholder="মোঃ কাওসার আহমেদ" autocomplete="name" inputmode="text"></div>
+    <div class="form-group"><label>মোবাইল নম্বর (১১ ডিজিট) *</label><input type="tel" id="chkPhone" placeholder="017XXXXXXXX" autocomplete="tel" inputmode="tel" pattern="[0-9]*"></div>
+    <div class="form-group"><label>সম্পূর্ণ ঠিকানা *</label><textarea id="chkAddress" rows="3" placeholder="বাসা/রোড/থানা/জেলা" autocomplete="street-address"></textarea></div>
+    <div class="form-group"><label>অর্ডার নোট (ঐচ্ছিক)</label><input type="text" id="chkNotes" placeholder="বিশেষ কোনো নির্দেশনা..." autocomplete="off"></div>
     
     <div class="form-group">
       <label>পেমেন্ট মাধ্যম *</label>
@@ -1527,6 +1646,18 @@ window.removeFromCart = (idx) => {
   saveLocalCart();
   renderCart();
   showToast(`${removed && removed.title ? removed.title : 'পণ্যটি'} ব্যাগ থেকে সরানো হয়েছে`);
+};
+
+/* Restore a previously snapshotted cart (used by the "আনডু" snackbar). */
+window.restoreCartSnapshot = (json) => {
+  try {
+    const parsed = JSON.parse(json || '[]');
+    if (!Array.isArray(parsed)) return;
+    cart.length = 0;
+    parsed.forEach(x => cart.push(x));
+    saveLocalCart();
+    renderCart();
+  } catch (e) {}
 };
 
 window.setDeliveryZone = (z) => {
@@ -2402,6 +2533,617 @@ setTimeout(() => {
     initCartFloat();
     initFlashPulse();
   });
+})();
+</script>
+<!-- ==========================================
+     V7 — ADVANCED TECH LAYER (behaviour)
+     PWA install + updates, smart search (debounce ·
+     voice · history), product share & deep links,
+     swipe-to-delete with undo, bottom-sheet drag,
+     view transitions, instant-paint cache, theme sync.
+     All feature-detected + wrapped in try/catch.
+     ========================================== -->
+<script id="v7-advanced">
+(function () {
+  'use strict';
+
+  var d = document, w = window;
+  var T = function (s, r) { return (r || d).querySelector(s); };
+  var TA = function (s, r) { return Array.prototype.slice.call((r || d).querySelectorAll(s)); };
+
+  function up(el, sel) {
+    while (el && el.nodeType === 1) { if (el.matches && el.matches(sel)) return el; el = el.parentElement; }
+    return null;
+  }
+  function guard(fn, tag) {
+    return function () {
+      try { return fn.apply(this, arguments); }
+      catch (e) { if (w.console && console.warn) console.warn('[MM:' + tag + ']', e && e.message); }
+    };
+  }
+  function haptic(ms) { try { if (navigator.vibrate) navigator.vibrate(ms || 12); } catch (e) {} }
+  function toast(m, err) { try { if (w.showToast) return w.showToast(m, !!err); } catch (e) {} }
+  function onReady(fn) { if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', fn); else fn(); }
+
+  var store = {
+    get: function (k, def) { try { var v = localStorage.getItem(k); return v === null ? def : JSON.parse(v); } catch (e) { return def; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+    raw: function (k, def) { try { var v = localStorage.getItem(k); return v === null ? def : v; } catch (e) { return def; } }
+  };
+
+  /* Re-wrap an app global once the module that defines it has booted. */
+  function wrapWhenReady(name, factory) {
+    var tries = 0;
+    (function attempt() {
+      var cur = w[name];
+      if (typeof cur === 'function') {
+        if (cur.__mmWrapped) return;
+        var wrapped = factory(cur);
+        wrapped.__mmWrapped = true;
+        w[name] = wrapped;
+        return;
+      }
+      if (++tries < 100) setTimeout(attempt, 100);
+    })();
+  }
+
+  /* ---------- Snackbar: one bar for undo / update / offline ---------- */
+  var snackTimer = null;
+  function snack(msg, actionLabel, onAction, ms) {
+    var el = d.getElementById('qsSnack');
+    if (!el) {
+      el = d.createElement('div');
+      el.id = 'qsSnack';
+      el.innerHTML = '<span class="qs-snack-text"></span>' +
+        '<button class="qs-snack-btn" type="button"></button>' +
+        '<button class="qs-snack-close" type="button" aria-label="বন্ধ করুন">✕</button>';
+      d.body.appendChild(el);
+    }
+    var text = T('.qs-snack-text', el), btn = T('.qs-snack-btn', el), close = T('.qs-snack-close', el);
+    text.textContent = msg;
+    if (actionLabel) {
+      btn.style.display = '';
+      btn.textContent = actionLabel;
+      btn.onclick = function () { el.classList.remove('show'); try { onAction && onAction(); } catch (e) {} };
+    } else { btn.style.display = 'none'; }
+    close.onclick = function () { el.classList.remove('show'); };
+    el.classList.add('show');
+    clearTimeout(snackTimer);
+    snackTimer = setTimeout(function () { el.classList.remove('show'); }, ms || 5000);
+    return el;
+  }
+
+  /* ---------- Smart search: clear · voice · recent history ---------- */
+  var RECENT_KEY = 'qs_recent_searches';
+  function pushRecent(term) {
+    term = String(term || '').replace(/\s+/g, ' ').trim();
+    if (term.length < 2) return;
+    var list = (store.get(RECENT_KEY, []) || []).filter(function (t) {
+      return String(t).toLowerCase() !== term.toLowerCase();
+    });
+    list.unshift(term);
+    store.set(RECENT_KEY, list.slice(0, 7));
+  }
+
+  function voiceSearch(input, micBtn) {
+    var SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SR) { toast('এই ব্রাউজারে ভয়েস সার্চ নেই — Chrome ব্যবহার করুন', true); return; }
+    if (micBtn.__rec) { try { micBtn.__rec.abort(); } catch (e) {} micBtn.__rec = null; micBtn.classList.remove('listening'); return; }
+    var rec = new SR();
+    micBtn.__rec = rec;
+    rec.lang = (/^bn/i.test(navigator.language) ? 'bn-BD' : 'en-US');
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onstart = function () { micBtn.classList.add('listening'); haptic(15); };
+    rec.onerror = function (ev) {
+      micBtn.classList.remove('listening'); micBtn.__rec = null;
+      toast(ev && ev.error === 'not-allowed' ? 'মাইক্রোফোনের অনুমতি দিন' : 'কথা শোনা যায়নি, আবার চেষ্টা করুন', true);
+    };
+    rec.onend = function () { micBtn.classList.remove('listening'); micBtn.__rec = null; };
+    rec.onresult = function (ev) {
+      var r = ev.results && ev.results[0] && ev.results[0][0];
+      var text = (r && r.transcript) || '';
+      if (!text) return;
+      input.value = text;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      haptic(20);
+      toast('খোঁজা হচ্ছে: ' + text);
+    };
+    try { rec.start(); } catch (e) { micBtn.classList.remove('listening'); micBtn.__rec = null; }
+  }
+
+  function initSmartSearch() {
+    TA('.search-container').forEach(function (container) {
+      var bar = T('.search-bar', container);
+      var input = bar && T('input', bar);
+      if (!bar || !input || bar.dataset.qsReady) return;
+      bar.dataset.qsReady = '1';
+
+      var clear = d.createElement('button');
+      clear.type = 'button'; clear.className = 'qs-clear'; clear.textContent = '✕';
+      clear.setAttribute('aria-label', 'সার্চ মুছে ফেলুন');
+      var mic = d.createElement('button');
+      mic.type = 'button'; mic.className = 'qs-mic'; mic.textContent = '🎤';
+      mic.setAttribute('aria-label', 'ভয়েস দিয়ে খুঁজুন');
+      bar.appendChild(clear);
+      bar.appendChild(mic);
+
+      var panel = d.createElement('div');
+      panel.className = 'qs-recent';
+      container.appendChild(panel);
+
+      function fire() { input.dispatchEvent(new Event('input', { bubbles: true })); }
+
+      function renderRecent() {
+        var list = store.get(RECENT_KEY, []) || [];
+        panel.innerHTML = '';
+        if (!list.length) { panel.classList.remove('show'); return; }
+        var lb = d.createElement('span');
+        lb.className = 'qs-chip-label';
+        lb.textContent = 'সাম্প্রতিক:';
+        panel.appendChild(lb);
+        list.forEach(function (term) {
+          var chip = d.createElement('button');
+          chip.type = 'button';
+          chip.className = 'qs-chip';
+          chip.textContent = term;
+          chip.addEventListener('click', function () {
+            input.value = term; fire(); haptic(10);
+            panel.classList.remove('show'); input.blur();
+          });
+          panel.appendChild(chip);
+        });
+        var clr = d.createElement('button');
+        clr.type = 'button'; clr.className = 'qs-chip-clear'; clr.textContent = 'সব মুছুন';
+        clr.addEventListener('click', function () { store.set(RECENT_KEY, []); renderRecent(); });
+        panel.appendChild(clr);
+        panel.classList.add('show');
+      }
+
+      input.addEventListener('input', function () { clear.classList.toggle('show', !!input.value); });
+      input.addEventListener('focus', function () { if (!input.value.trim()) renderRecent(); });
+      input.addEventListener('blur', function () { setTimeout(function () { panel.classList.remove('show'); }, 200); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === 'Escape') { panel.classList.remove('show'); }
+      });
+      clear.addEventListener('click', guard(function () {
+        input.value = ''; clear.classList.remove('show'); fire(); renderRecent(); input.focus(); haptic(10);
+      }, 'clear'));
+      mic.addEventListener('click', guard(function () { voiceSearch(input, mic); }, 'voice'));
+    });
+  }
+
+  /* Debounce the app's search handler (170ms) + remember the term */
+  var pushT = null;
+  function initSearchDebounce() {
+    wrapWhenReady('handleSearch', function (orig) {
+      var t = null;
+      return function () {
+        var self = this, args = arguments;
+        clearTimeout(t);
+        t = setTimeout(function () { orig.apply(self, args); }, 170);
+        clearTimeout(pushT);
+        pushT = setTimeout(function () {
+          var inp = T('.page.active .search-bar input');
+          if (inp && inp.value.trim().length >= 2) pushRecent(inp.value);
+        }, 1200);
+      };
+    });
+  }
+
+  /* ---------- View Transitions for tab switches ---------- */
+  function initViewTransitions() {
+    if (typeof d.startViewTransition !== 'function') return;
+    if (w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    wrapWhenReady('navTo', function (orig) {
+      return function () {
+        var self = this, args = arguments, ran = false;
+        var apply = function () {
+          if (ran) return;
+          ran = true;
+          try { orig.apply(self, args); } catch (e) {}
+        };
+        if (d.hidden) { apply(); return; }
+        try { d.startViewTransition(apply); }
+        catch (e) { apply(); }
+        /* Safety net: never let a throttled/stuck transition block navigation */
+        setTimeout(apply, 140);
+      };
+    });
+  }
+
+  /* ---------- Product share + deep links (?p=<id>, ?go=cart) ---------- */
+  function copyText(text) {
+    var fallback = function () {
+      try {
+        var ta = d.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+        d.body.appendChild(ta); ta.select();
+        d.execCommand('copy'); ta.remove();
+        toast('লিংক কপি হয়েছে');
+      } catch (e) { toast('কপি করা যায়নি', true); }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast('লিংক কপি হয়েছে'); }, fallback);
+    } else fallback();
+  }
+
+  function shareProduct(id) {
+    var box = d.getElementById('productBox');
+    var h = box && T('h2', box);
+    var title = h ? h.textContent.trim() : 'MM BAZAAR';
+    var url = location.origin + location.pathname + '?p=' + encodeURIComponent(id);
+    if (navigator.share) {
+      navigator.share({ title: title, text: title + ' — MM BAZAAR', url: url }).catch(function () {});
+      return;
+    }
+    copyText(url);
+  }
+
+  function injectShareButton(id) {
+    var box = d.getElementById('productBox');
+    if (!box || !box.querySelector) return;
+    if (T('.qs-share', box)) return;
+    var mainBtn = T('.btn-main', box);
+    var row = mainBtn && mainBtn.parentNode;
+    if (!row) return;
+    var btn = d.createElement('button');
+    btn.type = 'button';
+    btn.className = 'qs-share';
+    btn.innerHTML = '🔗';
+    btn.setAttribute('aria-label', 'প্রোডাক্ট শেয়ার করুন');
+    btn.style.cssText = 'flex:0 0 50px;border:1.5px solid var(--gold);background:transparent;color:var(--gold);border-radius:14px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+    btn.addEventListener('click', guard(function () { haptic(12); shareProduct(id); }, 'share'));
+    row.appendChild(btn);
+  }
+
+  function initShare() {
+    wrapWhenReady('openProduct', function (orig) {
+      return function (id) {
+        var res = orig.apply(this, arguments);
+        try { injectShareButton(id); } catch (e) {}
+        return res;
+      };
+    });
+  }
+
+  function initDeepLink() {
+    var q = location.search || '';
+    var goMatch = /[?&]go=([a-z]+)/i.exec(q);
+    if (goMatch) {
+      var map = { home: 0, category: 1, cart: 2, wishlist: 3, profile: 4 };
+      var idx = map[goMatch[1].toLowerCase()];
+      if (typeof idx === 'number') {
+        (function nav(n) {
+          var items = d.querySelectorAll('.nav-item');
+          if (typeof w.navTo === 'function' && items.length > idx) w.navTo(goMatch[1].toLowerCase(), items[idx]);
+          else if (n < 40) setTimeout(function () { nav(n + 1); }, 150);
+        })(0);
+      }
+    }
+    var pMatch = /[?&]p=([^&]+)/.exec(q);
+    if (!pMatch) return;
+    var pid = decodeURIComponent(pMatch[1]);
+    (function open(n) {
+      if (typeof w.openProduct !== 'function') { if (n < 80) setTimeout(function () { open(n + 1); }, 150); return; }
+      w.openProduct(pid);
+      setTimeout(function () {
+        var modal = d.getElementById('productModal');
+        if ((!modal || !modal.classList.contains('active')) && n < 40) setTimeout(function () { open(n + 1); }, 400);
+      }, 140);
+    })(0);
+  }
+
+  /* ---------- Swipe-to-delete cart rows + undo ---------- */
+  function initSwipeDelete() {
+    var THRESHOLD = 76;
+    var row = null, startX = 0, startY = 0, dx = 0, active = false, decided = false;
+
+    function ensureBg(r) {
+      if (T('.qs-swipe-bg', r)) return;
+      var bg = d.createElement('div');
+      bg.className = 'qs-swipe-bg';
+      bg.textContent = 'সরানো হচ্ছে 🗑️';
+      r.insertBefore(bg, r.firstChild);
+    }
+
+    function reset(r) {
+      if (!r) return;
+      r.classList.remove('qs-swiping');
+      r.style.setProperty('--qs-dx', '0px');
+      setTimeout(function () { if (r.isConnected) r.style.removeProperty('--qs-dx'); }, 260);
+    }
+
+    function removeRow(r) {
+      var container = d.getElementById('cartContainer');
+      if (!container) { reset(r); return; }
+      var idx = TA('.cart-item', container).indexOf(r);
+      if (idx < 0 || typeof w.removeFromCart !== 'function') { reset(r); return; }
+      var snapshot = store.raw('mm_bazaar_cart', null);
+      haptic(22);
+      w.removeFromCart(idx);
+      if (snapshot) {
+        snack('পণ্যটি সরানো হয়েছে', 'আনডু', function () {
+          try { if (w.restoreCartSnapshot) w.restoreCartSnapshot(snapshot); } catch (e) {}
+          toast('ফিরিয়ে আনা হয়েছে');
+        }, 6000);
+      }
+    }
+
+    d.addEventListener('touchstart', function (e) {
+      var r = up(e.target, '#cartContainer .cart-item');
+      if (!r || e.touches.length !== 1) return;
+      row = r; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+      dx = 0; active = false; decided = false;
+    }, { passive: true });
+
+    d.addEventListener('touchmove', function (e) {
+      if (!row) return;
+      var t = e.touches[0];
+      var mx = t.clientX - startX, my = t.clientY - startY;
+      if (!decided) {
+        if (Math.abs(my) > 10 && Math.abs(my) >= Math.abs(mx)) { row = null; return; }
+        if (Math.abs(mx) < 10) return;
+        decided = true;
+        active = mx < 0;
+        if (active) { ensureBg(row); row.classList.add('qs-swiping'); }
+        else { row = null; return; }
+      }
+      if (!active || !row) return;
+      dx = Math.min(0, mx);
+      row.style.setProperty('--qs-dx', dx + 'px');
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    d.addEventListener('touchend', function () {
+      var r = row;
+      row = null;
+      if (!r) return;
+      if (!active) { reset(r); return; }
+      active = false;
+      if (dx <= -THRESHOLD) { r.classList.remove('qs-swiping'); removeRow(r); }
+      else reset(r);
+    });
+
+    d.addEventListener('touchcancel', function () {
+      var r = row; row = null; active = false;
+      reset(r);
+    });
+  }
+
+  /* ---------- Bottom sheet: drag the card head down to dismiss ---------- */
+  function initSheetDrag() {
+    var box = null, modal = null, startY = 0, dy = 0, dragging = false;
+
+    d.addEventListener('touchstart', function (e) {
+      var b = up(e.target, '.modal-box');
+      if (!b || e.touches.length !== 1) return;
+      var r = b.getBoundingClientRect();
+      if (e.touches[0].clientY - r.top > 76) return; // only from the card head
+      box = b; modal = up(b, '.modal'); startY = e.touches[0].clientY; dy = 0; dragging = false;
+    }, { passive: true });
+
+    d.addEventListener('touchmove', function (e) {
+      if (!box) return;
+      dy = e.touches[0].clientY - startY;
+      if (!dragging) {
+        if (dy < 8) return;
+        dragging = true;
+        box.classList.add('qs-dragging');
+      }
+      if (dy < 0) dy = 0;
+      box.style.transform = 'translateY(' + dy + 'px)';
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    d.addEventListener('touchend', function () {
+      var b = box, m = modal, dist = dy;
+      box = null; modal = null; dragging = false;
+      if (!b) return;
+      b.classList.remove('qs-dragging');
+      if (!dist) { b.style.transform = ''; return; }
+      if (dist > 108) {
+        b.style.transform = 'translateY(120%)';
+        setTimeout(function () {
+          b.style.transform = '';
+          try { if (m && m.id && w.closeModal) w.closeModal(m.id); } catch (e) {}
+        }, 170);
+      } else {
+        b.style.transform = '';
+      }
+    });
+  }
+
+  /* ---------- PWA install prompt ---------- */
+  var installEvent = null;
+  function buildInstallSheet() {
+    if (d.getElementById('qsInstall')) return d.getElementById('qsInstall');
+    var el = d.createElement('div');
+    el.id = 'qsInstall';
+    el.innerHTML =
+      '<img src="icon-192.png" alt="MM BAZAAR">' +
+      '<div class="qs-inst-text">' +
+        '<div class="qs-inst-title">অ্যাপ হিসেবে ইনস্টল করুন</div>' +
+        '<div class="qs-inst-sub">দ্রুত লোড · হোম স্ক্রিনে আইকন · অফলাইনে খোলা যায়</div>' +
+      '</div>' +
+      '<button class="qs-inst-btn" type="button">ইনস্টল</button>' +
+      '<button class="qs-inst-x" type="button" aria-label="বন্ধ করুন">✕</button>';
+    d.body.appendChild(el);
+    T('.qs-inst-x', el).addEventListener('click', function () {
+      el.classList.remove('show');
+      d.body.classList.remove('qs-has-install');
+      store.set('qs_install_dismissed', Date.now());
+    });
+    T('.qs-inst-btn', el).addEventListener('click', guard(function () {
+      if (!installEvent) { el.classList.remove('show'); d.body.classList.remove('qs-has-install'); return; }
+      installEvent.prompt();
+      installEvent.userChoice.then(function (res) {
+        if (res && res.outcome === 'accepted') toast('ইনস্টল হচ্ছে…');
+        el.classList.remove('show');
+        d.body.classList.remove('qs-has-install');
+      });
+      installEvent = null;
+    }, 'install'));
+    return el;
+  }
+
+  function initInstall() {
+    var dismissedAt = store.get('qs_install_dismissed', 0) || 0;
+    var shown = false, timer = null;
+
+    function hideSheet() {
+      var el = d.getElementById('qsInstall');
+      if (el) el.classList.remove('show');
+      d.body.classList.remove('qs-has-install');
+    }
+
+    function maybeShow() {
+      if (shown || !installEvent) return;
+      shown = true;
+      if (Date.now() - dismissedAt < 1000 * 60 * 60 * 24 * 10) return; // respect a dismiss for 10 days
+      var el = buildInstallSheet();
+      el.classList.add('show');
+      d.body.classList.add('qs-has-install');
+      setTimeout(hideSheet, 12000);
+    }
+
+    w.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      installEvent = e;
+      clearTimeout(timer);
+      timer = setTimeout(maybeShow, 9000);                       // never interrupt the first seconds
+    });
+
+    /* …and show it as soon as the shopper starts browsing the feed */
+    w.addEventListener('scroll', function () {
+      if (!shown && w.scrollY > 240) { clearTimeout(timer); maybeShow(); }
+    }, { passive: true });
+
+    w.addEventListener('appinstalled', function () {
+      toast('ইনস্টল সম্পন্ন 🎉');
+      hideSheet();
+    });
+  }
+
+  /* ---------- Service worker: offline shell + update notice ---------- */
+  function initServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    var https = location.protocol === 'https:';
+    var local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!https && !local) return;
+
+    var reload = function (worker) {
+      try { worker && worker.postMessage('SKIP_WAITING'); } catch (e) {}
+      setTimeout(function () { location.reload(); }, 350);
+    };
+
+    w.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').then(function (reg) {
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          snack('নতুন আপডেট প্রস্তুত', 'রিফ্রেশ', function () { reload(reg.waiting); }, 15000);
+        }
+        reg.addEventListener('updatefound', function () {
+          var sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', function () {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              snack('নতুন আপডেট প্রস্তুত', 'রিফ্রেশ', function () { reload(sw); }, 15000);
+            }
+          });
+        });
+      }).catch(function () {});
+    });
+  }
+
+  /* ---------- Instant paint: last home feed from cache ---------- */
+  var CACHE_KEY = 'qs_home_cache_v1';
+  function initInstantPaint() {
+    var grid = d.getElementById('mainGrid');
+    if (!grid || !navigator.onLine) return;
+
+    var cache = store.get(CACHE_KEY, null);
+    if (cache && cache.html && (Date.now() - (cache.ts || 0)) < 86400000 && !grid.children.length) {
+      try {
+        grid.innerHTML = cache.html;
+        grid.dataset.cached = '1';
+        var banners = d.getElementById('bannerCarousel');
+        var cats = d.getElementById('catScroll');
+        if (banners && cache.banners && !banners.querySelector('img')) banners.innerHTML = cache.banners;
+        if (cats && cache.cats && !cats.children.length) cats.innerHTML = cache.cats;
+      } catch (e) { grid.innerHTML = ''; }
+    }
+
+    var saveTimer = null;
+    if (w.MutationObserver) {
+      new w.MutationObserver(function () {
+        if (grid.dataset.cached === '1') delete grid.dataset.cached;  /* live data replaced the cache */
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(function () {
+          if (!grid.children.length) return;
+          var banners = d.getElementById('bannerCarousel');
+          var cats = d.getElementById('catScroll');
+          store.set(CACHE_KEY, {
+            ts: Date.now(),
+            html: grid.innerHTML,
+            banners: banners ? banners.innerHTML : '',
+            cats: cats ? cats.innerHTML : ''
+          });
+        }, 2500);
+      }).observe(grid, { childList: true });
+    }
+
+    /* Cached cards are only a preview — nudge the user if they tap early */
+    d.addEventListener('click', function (e) {
+      if (grid.dataset.cached !== '1') return;
+      if (up(e.target, '#mainGrid .product-card')) toast('পণ্য লোড হচ্ছে, এক সেকেন্ড…');
+    }, true);
+  }
+
+  /* ---------- Theme: meta colour + follow the OS ---------- */
+  function initThemeSync() {
+    var apply = function () {
+      var dark = d.body.classList.contains('dark-mode');
+      TA('meta[name="theme-color"]').forEach(function (m) {
+        if (m.getAttribute('media')) return; // media-scoped tags handle themselves
+        m.setAttribute('content', dark ? '#0B1120' : '#D97706');
+      });
+      d.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+    };
+    apply();
+    if (w.MutationObserver) new w.MutationObserver(apply).observe(d.body, { attributes: true, attributeFilter: ['class'] });
+
+    var mq = w.matchMedia && w.matchMedia('(prefers-color-scheme: dark)');
+    if (mq && mq.addEventListener) {
+      mq.addEventListener('change', function (ev) {
+        if (store.raw('mm_bazaar_theme', null)) return;  /* user picked manually */
+        d.body.classList.toggle('dark-mode', ev.matches);
+      });
+    }
+  }
+
+  /* ---------- Connectivity feedback ---------- */
+  function initConnectivity() {
+    w.addEventListener('offline', function () { snack('আপনি অফলাইনে — ক্যাশ করা তথ্য দেখানো হচ্ছে', null, null, 5000); });
+    w.addEventListener('online', function () { toast('আবার অনলাইনে ✓'); });
+  }
+
+  /* ---------- boot ---------- */
+  onReady(guard(function () {
+    initSmartSearch();
+    initSearchDebounce();
+    initViewTransitions();
+    initShare();
+    initSwipeDelete();
+    initSheetDrag();
+    initInstall();
+    initServiceWorker();
+    initInstantPaint();
+    initThemeSync();
+    initConnectivity();
+    initDeepLink();
+  }, 'boot'));
+
 })();
 </script>
 </body>

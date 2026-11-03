@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="MM BAZAAR">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#D97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <g fill="#FFFFFF">
+    <path d="M97 415V97h63l59 121 59-121h63v318h-50V178l-50 103h-44l-50-103v237z"/>
+    <path d="M299 415V97h63l59 121 59-121h63v318h-50V178l-50 103h-44l-50-103v237z" transform="translate(-70 0)"/>
+  </g>
+</svg>
