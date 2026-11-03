@@ -912,6 +912,7 @@ body.qs-has-install #qsSnack { bottom: calc(136px + var(--safe-bottom)); }
     <div style="width:85px; height:85px; border-radius:50%; background:var(--gold-gradient); color:#FFF; font-size:36px; font-weight:900; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; box-shadow: 0 8px 20px var(--gold-glow);" id="profileAvatar">👤</div>
     <h2 id="userName" style="font-size:20px; font-weight:800; color:var(--text-main);">অতিথি গ্রাহক</h2>
     <p id="userEmail" style="font-size:13px; color:var(--text-sec); margin-top:4px;">লগইন করে আপনার অর্ডার ট্র্যাক করুন</p>
+    <div id="walletSummary" style="display:none; gap:10px; justify-content:center; margin-top:12px;"></div>
     
     <div id="loginSection" style="margin-top:16px;">
       <button class="btn-main" style="width:220px;margin:0 auto;padding:12px;font-size:14px;" onclick="openAuthModal()">🔐 লগইন / রেজিস্ট্রেশন</button>
@@ -1012,8 +1013,15 @@ body.qs-has-install #qsSnack { bottom: calc(136px + var(--safe-bottom)); }
     
     <div class="form-group" id="trxBox" style="display:none;"><label>পেমেন্ট TrxID *</label><input type="text" id="chkTrx" placeholder="যেমন: 9J4K8L2P"></div>
     
-    <div style="background:var(--surface-sub);padding:14px 16px;border-radius:12px;margin-bottom:20px;font-size:14px;display:flex;justify-content:space-between;font-weight:800;">
+    <div style="background:var(--surface-sub);padding:14px 16px;border-radius:12px;margin-bottom:12px;font-size:14px;display:flex;justify-content:space-between;font-weight:800;">
       <span>পরিশোধযোগ্য মোট:</span><span style="color:var(--gold);" id="chkTotalPayable">৳০</span>
+    </div>
+    <div id="walletRow" style="display:none;background:rgba(16,185,129,0.10);border:1px solid var(--success);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px;">
+      <label style="display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text-main);cursor:pointer;">
+        <input type="checkbox" id="useWalletChk" onchange="toggleWalletUse()" style="width:18px;height:18px;">
+        <span>💰 ওয়ালেট ব্যালেন্স ব্যবহার করুন (<span id="walletAvail">৳০</span>)</span>
+      </label>
+      <div id="walletAppliedNote" style="display:none;margin-top:8px;font-size:12px;color:var(--success);font-weight:700;"></div>
     </div>
     <button class="btn-main" onclick="placeOrder()" id="placeBtn">অর্ডার নিশ্চিত করুন</button>
     <button class="btn-outline" id="waCheckoutBtn" style="width:100%;margin-top:10px;display:none;" onclick="checkoutViaWhatsApp()">🟢 WhatsApp-এ অর্ডার পাঠান</button>
@@ -1100,10 +1108,12 @@ let currentDeliveryZone = 'in';
 let appliedCoupon = null;
 let selectedPayMethod = 'cod';
 let selectedVariant = { size: '', color: '' };
+let openProductId = null; /* which product sheet is currently open (variant stock refresh) */
 let flashTimerInterval = null, chatUnsubscribe = null;
 let currentCategoryFilter = 'all';
 let placingOrder = false;
 let isSignupMode = false;
+let useWalletBalance = false; /* customer opt-in for wallet at checkout */
 
 let appSettings = { 
   store_name: "MM BAZAAR", phone: "01700000000", whatsapp: "01700000000", 
@@ -1127,6 +1137,24 @@ function esc(s) { return s == null ? '' : String(s).replace(/&/g,'&amp;').replac
 function fmt(n) { return Number(n||0).toLocaleString('en-IN'); }
 function isValidBdPhone(p){ return /^01[3-9]\d{8}$/.test(String(p||'').replace(/[^0-9]/g,'')); }
 function safeNumber(n, def=0){ const v = parseFloat(n); return Number.isFinite(v) ? v : def; }
+
+/* ---------- Variant stock helpers (size|color grid set from the admin app) ---------- */
+function variantKey(size, color){ return `${size||''}|${color||''}`; }
+function hasVariantStock(p){ return !!(p && p.variantStock && typeof p.variantStock === 'object' && !Array.isArray(p.variantStock)); }
+function availableStock(p, size, color) {
+  const total = Math.max(0, Number((p && p.stock) || 0));
+  if(!hasVariantStock(p)) return total;
+  const vs = p.variantStock;
+  const keys = [variantKey(size, color), variantKey(size, ''), variantKey('', color), variantKey('', '')];
+  for(const k of keys) {
+    if(Object.prototype.hasOwnProperty.call(vs, k)) return Math.max(0, Number(vs[k]) || 0);
+  }
+  return total;
+}
+function variantStockLeftMessage(p, size, color) {
+  const left = availableStock(p, size, color);
+  return left > 0 ? `✅ এই ভ্যারিয়েন্টে স্টক আছে: ${left} টি` : '❌ এই ভ্যারিয়েন্টের স্টক শেষ';
+}
 
 window.showToast = (msg, isErr=false) => {
   const t = document.getElementById('toast');
@@ -1169,6 +1197,7 @@ window.navTo = (id, el) => {
   if(el) el.classList.add('active');
   if(id === 'cart') renderCart();
   if(id === 'wishlist') renderWishlist();
+  if(id === 'profile') renderWalletSummary();
   window.scrollTo({top:0, behavior:'smooth'});
 };
 
@@ -1223,7 +1252,7 @@ function initFirebaseSync() {
         id: d.id, title: p.title, price: p.price, oldPrice: p.oldPrice, 
         brand: p.brand, description: p.description, categoryId: p.categoryId, 
         stock: p.stock, imageUrl: p.imageUrl, imageGallery: p.imageGallery || [], 
-        sizes: p.sizes || [], colors: p.colors || [], variantStock: p.variantStock || '',
+        sizes: p.sizes || [], colors: p.colors || [], variantStock: (p.variantStock && typeof p.variantStock === 'object' && !Array.isArray(p.variantStock)) ? p.variantStock : null,
         isFlashSale: p.isFlashSale, flashEndsAt: p.flashEndsAt, 
         avgRating: p.avgRating || 0, reviewCount: p.reviewCount || 0, 
         createdAt: p.createdAt 
@@ -1270,6 +1299,7 @@ function initFirebaseSync() {
       if(snap.exists()) {
         userData = snap.data();
         document.getElementById('userName').innerText = userData.name || u.email.split('@')[0];
+        renderWalletSummary();
       }
       
       onSnapshot(doc(db, 'chats', u.uid), d => {
@@ -1451,6 +1481,7 @@ window.filterByCategory = (catId) => {
 window.openProduct = (id) => {
   const p = allProducts.find(x => x.id === id); 
   if(!p) return;
+  openProductId = id;
   
   selectedVariant = { size: p.sizes?.[0]||'', color: p.colors?.[0]||'' };
   
@@ -1474,6 +1505,8 @@ window.openProduct = (id) => {
     reviewBtn = `<button class="btn-outline" style="margin-top:16px; font-size:13px; padding:10px;" onclick="openReviewModal('${p.id}')">⭐ রিভিউ দিন</button>`;
   }
 
+  const variantLeft = availableStock(p, selectedVariant.size, selectedVariant.color);
+
   document.getElementById('productBox').innerHTML = `
     <button class="close-btn" onclick="closeModal('productModal')">✕</button>
     <div style="border-radius:20px;overflow:hidden;background:var(--surface-sub);position:relative;">
@@ -1494,24 +1527,71 @@ window.openProduct = (id) => {
       
       ${sizesHtml}${colorsHtml}
       
+      ${hasVariantStock(p) ? `<div id="variantStockNote" style="font-size:12.5px;font-weight:700;margin-bottom:14px;color:${variantLeft > 0 ? 'var(--success)' : 'var(--danger)'};">${variantStockLeftMessage(p, selectedVariant.size, selectedVariant.color)}</div>` : ''}
+      
       <div style="font-size:14px;color:var(--text-sec);line-height:1.6;margin-bottom:20px;background:var(--input-bg);padding:12px;border-radius:12px;">
         ${esc(p.description || 'কোনো বিবরণ নেই')}
       </div>
       
       <div style="display:flex;gap:10px;">
-        <button class="btn-main" onclick="addDetailedToCart('${esc(p.id)}')" ${p.stock<=0?'disabled':''} style="flex:1;">🛒 ব্যাগে যোগ করুন</button>
+        <button class="btn-main" id="addToCartBtn" onclick="addDetailedToCart('${esc(p.id)}')" ${(variantLeft <= 0) ? 'disabled' : ''} style="flex:1;">${variantLeft <= 0 ? 'স্টক শেষ' : '🛒 ব্যাগে যোগ করুন'}</button>
       </div>
       ${reviewBtn}
+      <div id="productReviewsBox" style="margin-top:18px;"></div>
     </div>
   `;
   document.getElementById('productModal').style.display = 'block';
   setTimeout(() => document.getElementById('productModal').classList.add('active'), 10);
+  renderProductReviews(p.id);
 };
+
+/* Variant-aware stock label + button state inside the product sheet */
+function refreshVariantUI(p) {
+  if(!p) return;
+  const left = availableStock(p, selectedVariant.size, selectedVariant.color);
+  const note = document.getElementById('variantStockNote');
+  if(note) {
+    note.innerText = variantStockLeftMessage(p, selectedVariant.size, selectedVariant.color);
+    note.style.color = left > 0 ? 'var(--success)' : 'var(--danger)';
+  }
+  const btn = document.getElementById('addToCartBtn');
+  if(btn) {
+    btn.disabled = left <= 0;
+    btn.innerText = left <= 0 ? 'স্টক শেষ' : '🛒 ব্যাগে যোগ করুন';
+  }
+}
+
+/* Customer reviews + admin replies shown under the product */
+function renderProductReviews(productId) {
+  const box = document.getElementById('productReviewsBox');
+  if(!box) return;
+  box.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">রিভিউ লোড হচ্ছে...</div>';
+  getDocs(query(collection(db, 'reviews'), where('productId', '==', productId)))
+    .then(snap => {
+      const list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      list.sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      if(!list.length) { box.innerHTML = '<div style="font-size:12.5px;color:var(--text-muted);">এখনো কোনো রিভিউ নেই — প্রথম রিভিউটি আপনিই দিন!</div>'; return; }
+      box.innerHTML = `<div style="font-size:13px;font-weight:800;margin-bottom:8px;color:var(--text-main);">⭐ গ্রাহক রিভিউ (${list.length})</div>` +
+        list.slice(0, 10).map(r => `
+          <div style="background:var(--input-bg);border-radius:12px;padding:10px 12px;margin-bottom:8px;">
+            <div style="font-size:12.5px;font-weight:800;color:var(--text-main);">${esc(r.userName || 'গ্রাহক')} <span style="color:var(--gold);">${'⭐'.repeat(Math.max(0, Math.min(5, Math.round(r.rating || 0))))}</span></div>
+            <div style="font-size:12.5px;color:var(--text-sec);margin-top:4px;line-height:1.5;">${esc(r.text || '')}</div>
+            ${r.reply ? `<div style="margin-top:8px;border-left:3px solid var(--gold);padding:6px 10px;background:var(--surface);border-radius:8px;">
+              <div style="font-size:11px;font-weight:800;color:var(--gold);">🛍️ ${esc(appSettings.store_name || 'দোকান')} থেকে উত্তর</div>
+              <div style="font-size:12px;color:var(--text-main);margin-top:3px;line-height:1.5;">${esc(r.reply)}</div>
+            </div>` : ''}
+          </div>`).join('');
+    })
+    .catch(() => { box.innerHTML = ''; });
+}
 
 window.setVariant = (type, val, el) => { 
   selectedVariant[type] = val; 
   el.parentElement.querySelectorAll('.variant-chip').forEach(c => c.classList.remove('active')); 
   el.classList.add('active'); 
+  const current = allProducts.find(x => x.id === openProductId);
+  if(current) refreshVariantUI(current);
 };
 
 window.toggleWishlist = (id) => {
@@ -1558,27 +1638,33 @@ function updateCartBadge() {
 
 window.quickAddToCart = (id) => {
   const p = allProducts.find(x => x.id === id);
-  if(!p || (p.stock||0) <= 0) return showToast('পণ্যটি স্টকে নেই', true);
-  
-  const ex = cart.find(x => x.id === id);
-  if(ex && ex.qty >= p.stock) return showToast('সর্বোচ্চ স্টক অতিক্রম করেছে', true);
-  
+  const size = p?.sizes?.[0] || '';
+  const color = p?.colors?.[0] || '';
+  const maxQty = availableStock(p, size, color);
+  if(!p || maxQty <= 0) return showToast('পণ্যটি স্টকে নেই', true);
+
+  const ex = cart.find(x => x.id === id && x.selectedSize === size && x.selectedColor === color);
+  if(ex && ex.qty >= maxQty) return showToast('সর্বোচ্চ স্টক অতিক্রম করেছে', true);
+
   if(ex) ex.qty += 1;
-  else cart.push({ ...p, qty: 1, selectedSize: p.sizes?.[0]||'', selectedColor: p.colors?.[0]||'' });
-  
+  else cart.push({ ...p, qty: 1, selectedSize: size, selectedColor: color });
+
   saveLocalCart(); showToast('কার্টে যোগ করা হয়েছে');
 };
 
 window.addDetailedToCart = (id) => {
   const p = allProducts.find(x => x.id === id); 
   if(!p) return;
-  
+
+  const maxQty = availableStock(p, selectedVariant.size, selectedVariant.color);
+  if(maxQty <= 0) return showToast('এই ভ্যারিয়েন্টের স্টক শেষ', true);
+
   const ex = cart.find(x => x.id === id && x.selectedSize === selectedVariant.size && x.selectedColor === selectedVariant.color);
-  if(ex && ex.qty >= p.stock) return showToast('সর্বোচ্চ স্টক অতিক্রম করেছে', true);
-  
+  if(ex && ex.qty >= maxQty) return showToast(`এই ভ্যারিয়েন্টে সর্বোচ্চ ${maxQty} টি যোগ করা যাবে`, true);
+
   if(ex) ex.qty += 1;
   else cart.push({ ...p, qty: 1, selectedSize: selectedVariant.size, selectedColor: selectedVariant.color });
-  
+
   saveLocalCart(); closeModal('productModal'); showToast('কার্টে যোগ করা হয়েছে');
 };
 
@@ -1779,6 +1865,59 @@ window.applyCoupon = async () => {
 // ==========================================
 // 10. CHECKOUT & PLACE ORDER
 // ==========================================
+/* ---------- Wallet & checkout totals (single source of truth) ---------- */
+function walletBalance(){ return currentUser ? safeNumber((userData||{}).walletBalance, 0) : 0; }
+
+function checkoutTotals() {
+  const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+  let disc = 0;
+  if (appliedCoupon) {
+    disc = appliedCoupon.type === 'percent' ? Math.round((subtotal * appliedCoupon.value) / 100) : appliedCoupon.value;
+    if (appliedCoupon.maxDiscount) disc = Math.min(disc, appliedCoupon.maxDiscount);
+    disc = Math.min(disc, subtotal);
+  }
+  const afterDisc = Math.max(0, subtotal - disc);
+  const freeDel = appSettings.free_delivery_threshold > 0 && afterDisc >= appSettings.free_delivery_threshold;
+  const del = freeDel ? 0 : (currentDeliveryZone === 'in' ? safeNumber(appSettings.del_in, 60) : safeNumber(appSettings.del_out, 120));
+  const taxAmt = Math.round(afterDisc * (appSettings.tax || 0) / 100);
+  const total = afterDisc + del + taxAmt;
+  const walletUsed = useWalletBalance ? Math.min(walletBalance(), total) : 0;
+  return { subtotal, disc, del, taxAmt, total, walletUsed, payable: Math.max(0, total - walletUsed) };
+}
+
+function refreshCheckoutTotal() {
+  const t = checkoutTotals();
+  const payable = document.getElementById('chkTotalPayable');
+  if(payable) payable.innerText = `৳${fmt(t.payable)}`;
+  const note = document.getElementById('walletAppliedNote');
+  if(note) {
+    if(t.walletUsed > 0) {
+      note.style.display = 'block';
+      note.innerText = `৳${fmt(t.walletUsed)} ওয়ালেট থেকে কাটা হবে · বাকি দিতে হবে ৳${fmt(t.payable)}`;
+    } else {
+      note.style.display = 'none';
+    }
+  }
+}
+
+window.toggleWalletUse = () => {
+  const chk = document.getElementById('useWalletChk');
+  useWalletBalance = !!(chk && chk.checked);
+  refreshCheckoutTotal();
+};
+
+function renderWalletSummary() {
+  const box = document.getElementById('walletSummary');
+  if(!box) return;
+  if(!currentUser) { box.style.display = 'none'; return; }
+  const pts = safeNumber((userData || {}).loyaltyPoints, 0);
+  const bal = safeNumber((userData || {}).walletBalance, 0);
+  box.innerHTML = `
+    <div style="background:var(--surface-sub);border:1px solid var(--border-subtle);border-radius:12px;padding:8px 14px;font-size:12px;font-weight:800;color:var(--gold);">⭐ ${fmt(pts)} পয়েন্ট</div>
+    <div style="background:var(--surface-sub);border:1px solid var(--border-subtle);border-radius:12px;padding:8px 14px;font-size:12px;font-weight:800;color:var(--success);">💰 ৳${fmt(bal)} ওয়ালেট</div>`;
+  box.style.display = 'flex';
+}
+
 window.openCheckout = () => {
   const guestAllowed = appToggles.f_s_guest_checkout !== false && appSettings.f_s_guest_checkout !== false;
   if(!guestAllowed && !currentUser) return openAuthModal();
@@ -1806,7 +1945,17 @@ window.openCheckout = () => {
   
   const sub = cart.reduce((s, i) => s + (i.price * i.qty), 0);
   const del = currentDeliveryZone === 'in' ? safeNumber(appSettings.del_in, 60) : safeNumber(appSettings.del_out, 120);
-  document.getElementById('chkTotalPayable').innerText = `৳${fmt(sub + del)}`; 
+
+  /* wallet balance is only usable for signed-in customers */
+  useWalletBalance = false;
+  const chkW = document.getElementById('useWalletChk');
+  if(chkW) chkW.checked = false;
+  const walletRow = document.getElementById('walletRow');
+  const bal = walletBalance();
+  if(walletRow) walletRow.style.display = bal > 0 ? 'block' : 'none';
+  const avail = document.getElementById('walletAvail');
+  if(avail) avail.innerText = `৳${fmt(bal)}`;
+  refreshCheckoutTotal();
 
   const waBtn = document.getElementById('waCheckoutBtn');
   if(waBtn) {
@@ -1859,38 +2008,50 @@ window.placeOrder = async () => {
   btn.disabled = true;
 
   try {
-    const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-    let disc = 0;
-    if (appliedCoupon) {
-      disc = appliedCoupon.type === 'percent' ? Math.round((subtotal * appliedCoupon.value) / 100) : appliedCoupon.value;
-      if (appliedCoupon.maxDiscount) disc = Math.min(disc, appliedCoupon.maxDiscount);
-      disc = Math.min(disc, subtotal);
-    }
-    const afterDisc = Math.max(0, subtotal - disc);
-    const freeDel = appSettings.free_delivery_threshold > 0 && afterDisc >= appSettings.free_delivery_threshold;
-    const del = freeDel ? 0 : (currentDeliveryZone === 'in' ? safeNumber(appSettings.del_in, 60) : safeNumber(appSettings.del_out, 120));
-    const taxAmt = Math.round(afterDisc * (appSettings.tax||0) / 100);
-    const total = afterDisc + del + taxAmt;
+    const T = checkoutTotals();
+    const subtotal = T.subtotal, disc = T.disc, del = T.del, taxAmt = T.taxAmt, total = T.total;
+    const walletUsed = currentUser ? T.walletUsed : 0;
+    const payable = Math.max(0, total - walletUsed);
 
     await runTransaction(db, async tr => {
-      // 1. Stock Check
+      // 1 + 2. Stock check (product + selected variant) & deduction
       for(const item of cart) {
         const pRef = doc(db, 'products', item.id); 
         const pSnap = await tr.get(pRef);
-        if(pSnap.exists() && (pSnap.data().stock || 0) < item.qty) {
-          throw new Error(`${item.title} এর স্টক শেষ`);
+        if(!pSnap.exists()) continue;
+        const pd = pSnap.data();
+        if((pd.stock || 0) < item.qty) throw new Error(`${item.title} এর স্টক শেষ`);
+
+        const hasVs = pd.variantStock && typeof pd.variantStock === 'object' && !Array.isArray(pd.variantStock);
+        if(hasVs) {
+          const vs = { ...pd.variantStock };
+          const keys = [variantKey(item.selectedSize, item.selectedColor), variantKey(item.selectedSize, ''), variantKey('', item.selectedColor), variantKey('', '')];
+          const vk = keys.find(kk => Object.prototype.hasOwnProperty.call(vs, kk));
+          if(vk !== undefined) {
+            const label = [item.selectedSize, item.selectedColor].filter(Boolean).join(' / ') || 'এই ভ্যারিয়েন্ট';
+            if(Number(vs[vk] || 0) < item.qty) throw new Error(`${item.title} (${label}) এর স্টক শেষ`);
+            vs[vk] = Math.max(0, Number(vs[vk] || 0) - item.qty);
+            tr.update(pRef, { stock: increment(-item.qty), variantStock: vs });
+            continue;
+          }
         }
-      }
-      
-      // 2. Deduct Stock
-      for(const item of cart) {
-        const pRef = doc(db, 'products', item.id);
         tr.update(pRef, { stock: increment(-item.qty) });
       }
       
       // 3. Update Coupon Count
       if(appliedCoupon) {
         tr.update(doc(db, 'coupons', appliedCoupon.id), { usedCount: increment(1) });
+      }
+
+      // 3b. Spend wallet balance (checked inside the transaction so it can never overspend)
+      if(walletUsed > 0 && currentUser) {
+        const uRef = doc(db, 'users', currentUser.uid);
+        const uSnap = await tr.get(uRef);
+        const balNow = uSnap.exists() ? Number(uSnap.data().walletBalance || 0) : 0;
+        if(balNow < walletUsed) throw new Error('ওয়ালেট ব্যালেন্স যথেষ্ট নয়, আবার চেষ্টা করুন');
+        const uLog = (uSnap.exists() && Array.isArray(uSnap.data().walletLog)) ? uSnap.data().walletLog.slice(-19) : [];
+        uLog.push({ at: new Date().toISOString(), balance: balNow - walletUsed, note: 'অর্ডারে ওয়ালেট ব্যবহার', by: 'customer' });
+        tr.update(uRef, { walletBalance: balNow - walletUsed, walletLog: uLog });
       }
       
       // 4. Create Order
@@ -1907,6 +2068,8 @@ window.placeOrder = async () => {
         subtotal,
         discount: disc,
         tax: taxAmt,
+        walletUsed,
+        payableAmount: payable,
         totalAmount: total,
         paymentMethod: selectedPayMethod,
         trxId: trx || '',
@@ -1927,6 +2090,8 @@ window.placeOrder = async () => {
 
     cart = []; 
     appliedCoupon = null; 
+    useWalletBalance = false;
+    if(currentUser && walletUsed > 0) userData = { ...userData, walletBalance: Math.max(0, walletBalance() - walletUsed) };
     saveLocalCart(); 
     renderCart();
     if(!currentUser && newOrderId) rememberGuestOrder(newOrderId);

@@ -423,8 +423,10 @@ input:checked + .slider:before { transform: translateX(22px); }
           <div class="form-group"><label>কালার (কমা দিয়ে)</label><input type="text" id="pColors" class="form-input" placeholder="লাল,নীল,সাদা"></div>
         </div>
         <div class="form-group">
-          <label style="color:var(--gold);">ভ্যারিয়েন্ট অনুযায়ী স্টক (ঐচ্ছিক, যেমন: লাল:10, নীল:5)</label>
-          <input type="text" id="pVariantStock" class="form-input" placeholder="লাল:10,নীল:5">
+          <label style="color:var(--gold);">ভ্যারিয়েন্ট অনুযায়ী স্টক (সাইজ × কালার)</label>
+          <button class="btn-secondary" type="button" style="width:auto;padding:6px 12px;font-size:12px;margin-bottom:8px;" onclick="buildVariantStockGrid()">🔄 সাইজ/কালার থেকে গ্রিড তৈরি করুন</button>
+          <div id="variantStockGrid" style="display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;"></div>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5;">সাইজ ও কালার লিখে উপরের বাটনে চাপুন, তারপর প্রতিটি ভ্যারিয়েন্টের স্টক দিন। কোনো ঘর খালি রাখলে ওই ভ্যারিয়েন্টে মোট স্টক ধরা হবে।</p>
         </div>
         
         <div class="toggle-row" style="border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:16px;">
@@ -751,6 +753,40 @@ input:checked + .slider:before { transform: translateX(22px); }
     <div class="form-group"><label>ট্র্যাকিং আইডি *</label><input type="text" id="crTrackingId" class="form-input" placeholder="যেমন: ST-982342"></div>
     <button class="btn-gold" onclick="confirmCourierDispatch()">চালান কনফার্ম করুন</button>
     <button class="btn-secondary" onclick="closeModal('courierModal')" style="margin-top:10px;width:100%;">বাতিল</button>
+  </div>
+</div>
+
+<!-- Review Reply Modal -->
+<div class="modal-overlay" id="reviewReplyModal">
+  <div class="modal-box" style="max-width:420px;">
+    <button class="close-btn" onclick="closeModal('reviewReplyModal')">✕</button>
+    <h3 style="font-size:18px;font-weight:800;margin-bottom:6px;">💬 রিভিউয়ের উত্তর দিন</h3>
+    <div id="replyReviewPreview" style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;"></div>
+    <div class="form-group">
+      <label>আপনার উত্তর</label>
+      <textarea id="reviewReplyText" class="form-textarea" rows="3" placeholder="যেমন: ধন্যবাদ! পণ্যটি ভালো লেগেছে জেনে খুশি হলাম।"></textarea>
+    </div>
+    <button class="btn-gold" onclick="saveReviewReply()">💾 উত্তর সেভ করুন</button>
+    <button class="btn-secondary" onclick="closeModal('reviewReplyModal')" style="margin-top:10px;width:100%;">বাতিল</button>
+  </div>
+</div>
+
+<!-- Wallet / Points Modal -->
+<div class="modal-overlay" id="walletModal">
+  <div class="modal-box" style="max-width:420px;">
+    <button class="close-btn" onclick="closeModal('walletModal')">✕</button>
+    <h3 style="font-size:18px;font-weight:800;margin-bottom:4px;">💰 পয়েন্ট ও ওয়ালেট</h3>
+    <div id="walletUserPreview" style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px;"></div>
+    <div class="form-row">
+      <div class="form-group"><label>লয়্যালটি পয়েন্ট</label><input type="number" id="walPoints" class="form-input" step="1"></div>
+      <div class="form-group"><label>ওয়ালেট ব্যালেন্স (৳)</label><input type="number" id="walBalance" class="form-input" step="1"></div>
+    </div>
+    <div class="form-group">
+      <label>কারণ / নোট (ঐচ্ছিক)</label>
+      <input type="text" id="walNote" class="form-input" placeholder="যেমন: রিফান্ড কমপেনসেশন">
+    </div>
+    <button class="btn-gold" onclick="saveWalletAdjust()">💾 সেভ করুন</button>
+    <button class="btn-secondary" onclick="closeModal('walletModal')" style="margin-top:10px;width:100%;">বাতিল</button>
   </div>
 </div>
 
@@ -1535,6 +1571,53 @@ window.removeGalleryImage = (index) => {
 // ==========================================
 // 9. PRODUCT MANAGEMENT (CRUD + Quick Stock)
 // ==========================================
+// ==========================================
+// 10. VARIANT STOCK (size × colour grid)
+// ==========================================
+function csvList(value) {
+  return String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+function buildVariantStockGrid(values) {
+  values = values || {};
+  const grid = document.getElementById('variantStockGrid');
+  if(!grid) return;
+  const sizes = csvList(document.getElementById('pSizes').value);
+  const colors = csvList(document.getElementById('pColors').value);
+  let combos = [];
+  if(sizes.length && colors.length) {
+    sizes.forEach(sz => colors.forEach(cl => combos.push({ size: sz, color: cl })));
+  } else if(sizes.length) {
+    combos = sizes.map(sz => ({ size: sz, color: '' }));
+  } else if(colors.length) {
+    combos = colors.map(cl => ({ size: '', color: cl }));
+  }
+
+  if(!combos.length) {
+    grid.innerHTML = '<p style="font-size:12px;color:var(--text-muted);">আগে সাইজ বা কালার লিখুন</p>';
+    return;
+  }
+  /* keep whatever the admin already typed so re-building does not wipe it */
+  const typed = collectVariantStock();
+  grid.innerHTML = combos.map(c => {
+    const key = `${c.size}|${c.color}`;
+    const label = [c.size, c.color].filter(Boolean).join(' / ');
+    let val = '';
+    if(values[key] !== undefined) val = values[key];
+    else if(typed[key] !== undefined) val = typed[key];
+    return `<div style="font-size:12.5px;font-weight:600;">${esc(label)}</div>
+      <input type="number" min="0" class="form-input variant-stock-input" data-key="${esc(key)}" value="${val === '' || val === null ? '' : esc(val)}" placeholder="স্টক">`;
+  }).join('');
+}
+function collectVariantStock() {
+  const out = {};
+  document.querySelectorAll('#variantStockGrid .variant-stock-input').forEach(inp => {
+    const v = inp.value.trim();
+    if(v !== '' && !isNaN(Number(v))) out[inp.dataset.key] = Number(v);
+  });
+  return out;
+}
+window.buildVariantStockGrid = buildVariantStockGrid; /* used from an inline onclick */
+
 window.saveProductData = async () => {
   const title = document.getElementById('pTitle').value.trim();
   const price = parseFloat(document.getElementById('pPrice').value);
@@ -1554,7 +1637,7 @@ window.saveProductData = async () => {
     imageGallery: galleryImages, 
     sizes: document.getElementById('pSizes').value.split(',').map(s=>s.trim()).filter(Boolean), 
     colors: document.getElementById('pColors').value.split(',').map(s=>s.trim()).filter(Boolean), 
-    variantStock: document.getElementById('pVariantStock').value.trim(),
+    variantStock: collectVariantStock(),
     isFlashSale: document.getElementById('pIsFlashSale').checked, 
     flashEndsAt: document.getElementById('pFlashEndsAt').value ? new Date(document.getElementById('pFlashEndsAt').value).toISOString() : null, 
     isActive: true
@@ -1596,7 +1679,8 @@ window.editProduct = (id) => {
   document.getElementById('pImgUrl').value = p.imageUrl||''; 
   document.getElementById('pSizes').value = (p.sizes||[]).join(','); 
   document.getElementById('pColors').value = (p.colors||[]).join(','); 
-  document.getElementById('pVariantStock').value = p.variantStock||''; 
+  const vStock = (p.variantStock && typeof p.variantStock === 'object' && !Array.isArray(p.variantStock)) ? p.variantStock : {};
+  buildVariantStockGrid(vStock);
   document.getElementById('pIsFlashSale').checked = p.isFlashSale||false; 
   document.getElementById('pFlashEndsAt').value = p.flashEndsAt ? p.flashEndsAt.slice(0,16) : '';
   
@@ -1614,7 +1698,8 @@ window.cancelProductEdit = () => {
   editingProductId = null; 
   galleryImages = []; 
   renderGalleryPreview();
-  ['pTitle','pPrice','pOldPrice','pBrand','pDescription','pPurchasePrice','pImgUrl','pSizes','pColors','pVariantStock','pFlashEndsAt','pImageGalleryText'].forEach(id => document.getElementById(id).value='');
+  ['pTitle','pPrice','pOldPrice','pBrand','pDescription','pPurchasePrice','pImgUrl','pSizes','pColors','pFlashEndsAt','pImageGalleryText'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('variantStockGrid').innerHTML = '';
   document.getElementById('pStock').value = 50; 
   document.getElementById('pIsFlashSale').checked = false;
   document.getElementById('prodFormTitle').innerText = '🛍️ নতুন প্রোডাক্ট তৈরি'; 
@@ -2006,7 +2091,9 @@ function renderBundleList() {
 // 14. USER MANAGEMENT (Block/Unblock)
 // ==========================================
 function renderUsersList() {
-  document.getElementById('userListContainer').innerHTML = allUsers.map(u => {
+  const box = document.getElementById('userListContainer');
+  if(!allUsers.length) { box.innerHTML = '<p style="text-align:center;padding:20px;">কোনো কাস্টমার নেই</p>'; return; }
+  box.innerHTML = allUsers.map(u => {
     const uOrders = allOrders.filter(o=>o.userId===u.id && o.status!=='cancelled');
     const spent = uOrders.reduce((s,o)=>s+Number(o.totalAmount||0),0);
     return `
@@ -2014,14 +2101,62 @@ function renderUsersList() {
         <div>
           <div class="list-title">${esc(u.name||'নাম নেই')} ${u.isBlocked ? '<span style="color:var(--danger);font-size:10px;">(ব্লকড)</span>' : ''}</div>
           <div class="list-subtitle">${esc(u.phone||u.email)} | অর্ডার: ${uOrders.length} | মোট: ৳${fmt(spent)}</div>
+          <div class="list-subtitle" style="color:var(--gold);font-weight:700;">⭐ ${fmt(u.loyaltyPoints||0)} পয়েন্ট · 💰 ৳${fmt(u.walletBalance||0)}</div>
         </div>
-        <button class="btn-secondary" onclick="toggleBlockUser('${u.id}', ${u.isBlocked})" style="color:${u.isBlocked?'var(--success)':'var(--danger)'};border-color:${u.isBlocked?'var(--success)':'var(--danger)'};">
-          ${u.isBlocked?'আনব্লক':'ব্লক'}
-        </button>
+        <div class="flex-row">
+          <button class="btn-secondary" onclick="openWalletAdjust('${u.id}')" style="color:var(--gold);border-color:var(--gold);">💰 পয়েন্ট</button>
+          <button class="btn-secondary" onclick="toggleBlockUser('${u.id}', ${u.isBlocked})" style="color:${u.isBlocked?'var(--success)':'var(--danger)'};border-color:${u.isBlocked?'var(--success)':'var(--danger)'};">
+            ${u.isBlocked?'আনব্লক':'ব্লক'}
+          </button>
+        </div>
       </div>
     `;
   }).join('');
 }
+
+// ==========================================
+// 20. WALLET & LOYALTY POINTS (manual adjust)
+// ==========================================
+let walletUserId = null;
+window.openWalletAdjust = (userId) => {
+  const u = allUsers.find(x => x.id === userId);
+  if(!u) return;
+  walletUserId = userId;
+  document.getElementById('walPoints').value = Number(u.loyaltyPoints || 0);
+  document.getElementById('walBalance').value = Number(u.walletBalance || 0);
+  document.getElementById('walNote').value = '';
+  document.getElementById('walletUserPreview').innerText = `${u.name || 'কাস্টমার'} · ${u.phone || u.email || ''}`;
+  document.getElementById('walletModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('walletModal').classList.add('active'), 10);
+};
+
+window.saveWalletAdjust = async () => {
+  if(!walletUserId) return;
+  const points = parseInt(document.getElementById('walPoints').value, 10);
+  const balance = parseFloat(document.getElementById('walBalance').value);
+  const note = document.getElementById('walNote').value.trim();
+  if(!Number.isFinite(points) || points < 0) return showToast('সঠিক পয়েন্ট দিন', true);
+  if(!Number.isFinite(balance) || balance < 0) return showToast('সঠিক ওয়ালেট ব্যালেন্স দিন', true);
+
+  const u = allUsers.find(x => x.id === walletUserId);
+  const log = Array.isArray(u && u.walletLog) ? u.walletLog.slice(-19) : [];
+  log.push({
+    at: new Date().toISOString(),
+    points,
+    balance,
+    note,
+    by: auth.currentUser ? (auth.currentUser.email || 'admin') : 'admin'
+  });
+
+  try {
+    await updateDoc(doc(db, 'users', walletUserId), { loyaltyPoints: points, walletBalance: balance, walletLog: log });
+    showToast('পয়েন্ট ও ওয়ালেট আপডেট হয়েছে');
+    logActivity(`পয়েন্ট/ওয়ালেট আপডেট: ${u ? (u.name || u.phone || walletUserId) : walletUserId} → ⭐${points} · ৳${balance}`);
+    closeModal('walletModal');
+  } catch(e) {
+    showToast('ব্যর্থ: ' + e.message, true);
+  }
+};
 
 window.toggleBlockUser = async (id, isBlocked) => { 
   try {
@@ -2041,20 +2176,59 @@ function renderReviewList() {
     document.getElementById('reviewListContainer').innerHTML = '<p style="text-align:center;padding:20px;">কোনো রিভিউ নেই</p>'; 
     return; 
   }
-  document.getElementById('reviewListContainer').innerHTML = allReviews.map(r => {
+  const sorted = [...allReviews].sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  document.getElementById('reviewListContainer').innerHTML = sorted.map(r => {
     const p = allProducts.find(x => x.id === r.productId);
     return `
       <div class="list-item" style="align-items:flex-start;">
-        <div>
-          <div class="list-title">${esc(r.userName)} <span style="color:var(--gold);">${'⭐'.repeat(r.rating)}</span></div>
-          <div class="list-subtitle">প্রোডাক্ট: ${p ? esc(p.title) : 'অজানা প্রোডাক্ট'}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="list-title">${esc(r.userName)} <span style="color:var(--gold);">${'⭐'.repeat(Math.max(0, Math.min(5, Math.round(r.rating||0))))}</span></div>
+          <div class="list-subtitle">প্রোডাক্ট: ${p ? esc(p.title) : 'অজানা প্রোডাক্ট'}${r.createdAt ? ' · ' + new Date(r.createdAt).toLocaleDateString('bn-BD') : ''}</div>
           <p style="font-size:13px;margin-top:5px;color:var(--text-main);">${esc(r.text)}</p>
+          ${r.reply ? `<div style="margin-top:8px;border-left:3px solid var(--gold);padding:6px 10px;background:var(--bg-surface);border-radius:8px;">
+            <div style="font-size:11px;font-weight:800;color:var(--gold);">💬 আপনার উত্তর</div>
+            <div style="font-size:12.5px;margin-top:2px;">${esc(r.reply)}</div>
+          </div>` : ''}
         </div>
-        <button class="btn-danger" onclick="deleteReview('${r.id}', '${r.productId}')">ডিলিট</button>
+        <div class="flex-row" style="flex-direction:column;gap:6px;">
+          <button class="btn-secondary" onclick="openReviewReply('${r.id}')">${r.reply ? 'উত্তর এডিট' : '💬 উত্তর দিন'}</button>
+          <button class="btn-danger" onclick="deleteReview('${r.id}', '${r.productId}')">ডিলিট</button>
+        </div>
       </div>
     `;
   }).join('');
 }
+
+let replyReviewId = null;
+window.openReviewReply = (reviewId) => {
+  const r = allReviews.find(x => x.id === reviewId);
+  if(!r) return;
+  replyReviewId = reviewId;
+  const p = allProducts.find(x => x.id === r.productId);
+  document.getElementById('replyReviewPreview').innerHTML =
+    `<b>${esc(r.userName || 'গ্রাহক')}</b> · ${esc(p ? p.title : 'প্রোডাক্ট')}<br>“${esc(r.text || '')}”`;
+  document.getElementById('reviewReplyText').value = r.reply || '';
+  document.getElementById('reviewReplyModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('reviewReplyModal').classList.add('active'), 10);
+};
+
+window.saveReviewReply = async () => {
+  if(!replyReviewId) return;
+  const reply = document.getElementById('reviewReplyText').value.trim();
+  try {
+    await updateDoc(doc(db, 'reviews', replyReviewId), {
+      reply,
+      repliedAt: reply ? new Date().toISOString() : null,
+      repliedBy: reply ? (auth.currentUser ? (auth.currentUser.email || 'admin') : 'admin') : null
+    });
+    showToast(reply ? 'উত্তর সেভ হয়েছে' : 'উত্তর মুছে ফেলা হয়েছে');
+    logActivity(reply ? 'রিভিউয়ের উত্তর দেওয়া হয়েছে' : 'রিভিউয়ের উত্তর মুছে ফেলা হয়েছে');
+    closeModal('reviewReplyModal');
+    replyReviewId = null;
+  } catch(e) {
+    showToast('ব্যর্থ: ' + e.message, true);
+  }
+};
 
 window.deleteReview = async (reviewId, productId) => {
   if(confirm('রিভিউটি ডিলিট করতে চান?')) {
