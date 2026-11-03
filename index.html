@@ -594,6 +594,19 @@ body.dark-mode .bottom-nav { border-top-color: var(--hairline-dark); box-shadow:
 .price-old { font-size: 9.5px; }
 .product-lowstock { font-size: 9.5px; line-height: 1.2; color: var(--danger); font-weight: 700; margin-bottom: 2px; }
 .btn-quick-add { padding: 3px 4px; font-size: 9.5px; border-radius: 7px; border-width: 1px; gap: 3px; }
+
+/* ==========================================
+   V6 — FIXES
+   • Chat composer + coupon row stayed wider than
+     their card: text inputs default to min-width:auto
+     inside a flex row, so they refused to shrink and
+     pushed the buttons ("পাঠান" / "প্রয়োগ") off screen.
+   ========================================== */
+#chatInput, #couponInput { min-width: 0; width: 0; }
+#chatModal .chat-box > div:last-child { min-width: 0; }
+#chatModal .chat-box > div:last-child > button { flex: 0 0 auto; white-space: nowrap; }
+#chatModal .modal-box { overflow-x: hidden; }
+#cartFooter .btn-outline { flex: 0 0 auto; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -1489,7 +1502,7 @@ window.renderCart = () => {
             <button onclick="changeQty(${idx},1)" style="width:28px;height:28px;border:1.5px solid var(--border-subtle);background:var(--input-bg);border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-main);">+</button>
           </div>
         </div>
-        <button onclick="cart.splice(${idx},1);saveLocalCart();renderCart();" style="border:none;background:var(--danger-bg);color:var(--danger);width:36px;height:36px;border-radius:10px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">🗑️</button>
+        <button onclick="removeFromCart(${idx})" style="border:none;background:var(--danger-bg);color:var(--danger);width:36px;height:36px;border-radius:10px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">🗑️</button>
       </div>
     `;
   }).join('');
@@ -1503,6 +1516,17 @@ window.changeQty = (idx, delta) => {
   if(cart[idx].qty <= 0) cart.splice(idx, 1);
   saveLocalCart(); 
   renderCart();
+};
+
+/* Delete a cart row. Exposed on window because the 🗑️ button calls it
+   from an inline onclick (module scope is not reachable from HTML). */
+window.removeFromCart = (idx) => {
+  if (idx < 0 || idx >= cart.length) return;
+  const removed = cart[idx];
+  cart.splice(idx, 1);
+  saveLocalCart();
+  renderCart();
+  showToast(`${removed && removed.title ? removed.title : 'পণ্যটি'} ব্যাগ থেকে সরানো হয়েছে`);
 };
 
 window.setDeliveryZone = (z) => {
@@ -2324,7 +2348,7 @@ setTimeout(() => {
       var btn = target.closest('#cartContainer button');
       if (!btn) return;
       var handler = btn.getAttribute('onclick') || '';
-      if (handler.indexOf('cart.splice') === -1) return;
+      if (handler.indexOf('removeFromCart') === -1 && handler.indexOf('cart.splice') === -1) return;
 
       e.preventDefault();
       e.stopPropagation();
